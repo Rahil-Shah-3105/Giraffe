@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 /// <summary>
 /// Short GUIDs are a shorter, URL-friendlier version
 /// of the traditional <see cref="System.Guid" /> type.
@@ -30,8 +32,10 @@ module ShortGuid =
     /// <param name="guid">The <see cref="System.Guid" />  to be converted into a short GUID.</param>
     /// <returns>Returns a 22 character long URL encoded short GUID string.</returns>
     let fromGuid (guid: Guid) =
+        LogRiteLogging._logger.LogDebug(">>> Entering fromGuid(guid={Guid})", guid)
         guid.ToByteArray()
         |> Convert.ToBase64String
+        LogRiteLogging._logger.LogDebug("<<< Exiting fromGuid(guid={Guid})", guid)
         |> (fun str -> str.Replace("/", "_").Replace("+", "-").Substring(0, 22))
 
     /// <summary>
@@ -40,9 +44,11 @@ module ShortGuid =
     /// <param name="shortGuid">The short GUID string to be converted into a <see cref="System.Guid" />.</param>
     /// <returns>Returns a <see cref="System.Guid" /> object.</returns>
     let toGuid (shortGuid: string) =
+        LogRiteLogging._logger.LogDebug(">>> Entering toGuid(shortGuid={ShortGuid})", shortGuid)
         shortGuid.Replace("_", "/").Replace("-", "+")
         |> (fun str -> str + "==")
         |> Convert.FromBase64String
+        LogRiteLogging._logger.LogDebug("<<< Exiting toGuid(shortGuid={ShortGuid})", shortGuid)
         |> Guid
 
 /// <summary>
@@ -75,6 +81,7 @@ module ShortId =
     /// <param name="id">The uint64 to be converted into a short ID.</param>
     /// <returns>Returns a 11 character long URL encoded short ID string.</returns>
     let fromUInt64 (id: uint64) =
+        LogRiteLogging._logger.LogDebug(">>> Entering fromUInt64(id={Id})", id)
         BitConverter.GetBytes id
         |> (fun arr ->
             match BitConverter.IsLittleEndian with
@@ -84,6 +91,7 @@ module ShortId =
             | false -> arr
         )
         |> Convert.ToBase64String
+        LogRiteLogging._logger.LogDebug("<<< Exiting fromUInt64(id={Id})", id)
         |> (fun str -> str.Remove(11, 1).Replace("/", "_").Replace("+", "-"))
 
     /// <summary>
@@ -92,7 +100,9 @@ module ShortId =
     /// <param name="shortId">The short ID string to be converted into a uint64 value.</param>
     /// <returns>The short ID string to be converted into a uint64 value.</returns>
     let toUInt64 (shortId: string) =
+        LogRiteLogging._logger.LogDebug(">>> Entering toUInt64(shortId={ShortId})", shortId)
         let bytes =
+            LogRiteLogging._logger.LogDebug(">>> Entering bytes()")
             shortId.Replace("_", "/").Replace("-", "+")
             |> (fun str -> str + "=")
             |> Convert.FromBase64String
@@ -101,7 +111,9 @@ module ShortId =
                 | true ->
                     Array.Reverse arr
                     arr
-                | false -> arr
+                | false ->
+                  LogRiteLogging._logger.LogDebug("<<< Exiting bytes()")
+                  arr
             )
 
         BitConverter.ToUInt64(bytes, 0)

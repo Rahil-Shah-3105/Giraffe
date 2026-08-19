@@ -10,7 +10,9 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Http.Extensions
 open Microsoft.Extensions.Primitives
 open Microsoft.Net.Http.Headers
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 // ---------------------------
 // HTTP Range parsing
 // ---------------------------
@@ -37,6 +39,7 @@ module internal RangeHelper =
     /// https://github.com/aspnet/StaticFiles/blob/dev/shared/Microsoft.AspNetCore.RangeHelper.Sources/RangeHelper.cs
     ///
     let parseRange (request: HttpRequest) =
+        LogRiteLogging._logger.LogDebug(">>> Entering parseRange(request={Request})", request)
         let rawRangeHeader = request.Headers.[HeaderNames.Range]
 
         if StringValues.IsNullOrEmpty(rawRangeHeader) then
@@ -44,11 +47,13 @@ module internal RangeHelper =
         // Perf: Check for a single entry before parsing it.
         // The spec allows for multiple ranges but we choose not to support them because the client may request
         // very strange ranges (e.g. each byte separately, overlapping ranges, etc.) that could negatively
+        LogRiteLogging._logger.LogDebug("<<< Exiting parseRange(request={Request})", request)
         // impact the server. Ignore the header and serve the response normally.
         else if (rawRangeHeader.Count > 1 || rawRangeHeader.[0].IndexOf(',') >= 0) then
             None
         else
             let range = request.GetTypedHeaders().Range
+            LogRiteLogging._logger.LogDebug("parseRange(request={Request}): range → {Range}", request, range)
 
             if isNull range then None
             else if isNull range.Ranges then None
@@ -61,13 +66,16 @@ module internal RangeHelper =
     /// <param name="contentLength"></param>
     /// <returns></returns>
     let validateRanges (ranges: ICollection<RangeItemHeaderValue>) (contentLength: int64) =
+        LogRiteLogging._logger.LogDebug(">>> Entering validateRanges(ranges={Ranges})", ranges)
         if ranges.Count.Equals 0 then
+            LogRiteLogging._logger.LogDebug("<<< Exiting validateRanges(ranges={Ranges})", ranges)
             Error "No ranges provided."
         else if contentLength.Equals 0 then
             Error "Range exceeds content length (which is zero)."
         else
             // Normalize the range
             let range = ranges.SingleOrDefault()
+            LogRiteLogging._logger.LogDebug("validateRanges(ranges={Ranges}): range → {Range}", ranges, range)
 
             match range.From.HasValue with
             | true ->
@@ -82,7 +90,9 @@ module internal RangeHelper =
 
                     Ok
                         {
+                        LogRiteLogging._logger.LogDebug(">>> Entering endOfRange()")
                             Start = range.From.Value
+                            LogRiteLogging._logger.LogDebug("<<< Exiting endOfRange()")
                             End = endOfRange
                         }
             | false ->
@@ -146,9 +156,12 @@ type StreamingExtensions() =
                 use input = stream
 
                 let numberOfBytes =
+                    LogRiteLogging._logger.LogDebug(">>> Entering numberOfBytes()")
                     match rangeBoundary with
+                        LogRiteLogging._logger.LogDebug("<<< Exiting numberOfBytes()")
                     | Some range ->
                         let contentRange =
+                            LogRiteLogging._logger.LogDebug(">>> Entering contentRange()")
                             sprintf "%s %i-%i/%i" (ctx.RangeUnit()) range.Start range.End stream.Length
 
                         // Set additional HTTP headers for range response
@@ -268,10 +281,13 @@ type StreamingExtensions() =
         ) =
         task {
             let filePath =
+        LogRiteLogging._logger.LogDebug(">>> Entering filePath()")
                 match Path.IsPathRooted filePath with
+                    LogRiteLogging._logger.LogDebug("<<< Exiting filePath()")
                 | true -> filePath
                 | false ->
                     let env = ctx.GetWebHostEnvironment()
+                    LogRiteLogging._logger.LogDebug("filePath(): env → {Env}", env)
                     Path.Combine(env.ContentRootPath, filePath)
 
             use stream = new FileStream(filePath, FileMode.Open, FileAccess.Read)

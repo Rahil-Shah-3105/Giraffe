@@ -76,7 +76,9 @@ module Core =
     let handleContext (contextMap: HttpContext -> HttpFuncResult) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogDebug(">>> Entering handleContext(contextMap={ContextMap})", contextMap)
                 match! contextMap ctx with
+                    logger.LogDebug("<<< Exiting handleContext(contextMap={ContextMap})", contextMap)
                 | Some c ->
                     match c.Response.HasStarted with
                     | true -> return Some c
@@ -98,7 +100,9 @@ module Core =
     /// <param name="final"></param>
     /// <returns>A <see cref="HttpFunc"/>.</returns>
     let compose (handler1: HttpHandler) (handler2: HttpHandler) : HttpHandler =
+        logger.LogDebug(">>> Entering compose(handler1={Handler1})", handler1)
         fun (final: HttpFunc) ->
+            logger.LogDebug("<<< Exiting compose(handler1={Handler1})", handler1)
             let func = final |> handler2 |> handler1
 
             fun (ctx: HttpContext) ->
@@ -121,7 +125,9 @@ module Core =
     let rec private chooseHttpFunc (funcs: HttpFunc list) : HttpFunc =
         fun (ctx: HttpContext) ->
             task {
+            logger.LogDebug(">>> Entering chooseHttpFunc(funcs={Funcs})", funcs)
                 match funcs with
+                    logger.LogDebug("<<< Exiting chooseHttpFunc(funcs={Funcs})", funcs)
                 | [] -> return None
                 | func :: tail ->
                     let! result = func ctx
@@ -139,8 +145,11 @@ module Core =
     /// <param name="next"></param>
     /// <returns>A <see cref="HttpFunc"/>.</returns>
     let choose (handlers: HttpHandler list) : HttpHandler =
+        logger.LogDebug(">>> Entering choose(handlers={Handlers})", handlers)
         fun (next: HttpFunc) ->
+            logger.LogDebug("<<< Exiting choose(handlers={Handlers})", handlers)
             let funcs = handlers |> List.map (fun h -> h next)
+            logger.LogDebug("choose(handlers={Handlers}): funcs → {Funcs}", handlers, funcs)
             fun (ctx: HttpContext) -> chooseHttpFunc funcs ctx
 
     // ---------------------------
@@ -155,7 +164,9 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let private httpVerb (validate: string -> bool) : HttpHandler =
+        logger.LogDebug(">>> Entering httpVerb(validate={Validate})", validate)
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            logger.LogDebug("<<< Exiting httpVerb(validate={Validate})", validate)
             if validate ctx.Request.Method then
                 next ctx
             else
@@ -167,6 +178,7 @@ module Core =
     let PATCH: HttpHandler = httpVerb HttpMethods.IsPatch
 
     let QUERY: HttpHandler =
+        logger.LogDebug(">>> Entering QUERY(HttpHandler={HttpHandler})", HttpHandler)
         httpVerb (fun method -> method.Equals("QUERY", StringComparison.OrdinalIgnoreCase))
 
     let DELETE: HttpHandler = httpVerb HttpMethods.IsDelete
@@ -185,7 +197,9 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let clearResponse: HttpHandler =
+        logger.LogDebug(">>> Entering clearResponse(HttpHandler={HttpHandler})", HttpHandler)
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            logger.LogDebug("<<< Exiting clearResponse(HttpHandler={HttpHandler})", HttpHandler)
             ctx.Response.Clear()
             next ctx
 
@@ -199,6 +213,7 @@ module Core =
     let setContentType contentType : HttpHandler =
         fun next ctx ->
             ctx.SetContentType contentType
+            logger.LogDebug("<<< Exiting setContentType(contentType={ContentType},HttpHandler={HttpHandler})", contentType, HttpHandler)
             next ctx
 
     /// <summary>
@@ -209,7 +224,9 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let setStatusCode (statusCode: int) : HttpHandler =
+        logger.LogDebug(">>> Entering setStatusCode(statusCode={StatusCode})", statusCode)
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            logger.LogDebug("<<< Exiting setStatusCode(statusCode={StatusCode})", statusCode)
             ctx.SetStatusCode statusCode
             next ctx
 
@@ -222,7 +239,9 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let setHttpHeader (key: string) (value: obj) : HttpHandler =
+        logger.LogDebug(">>> Entering setHttpHeader(key={Key})", key)
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            logger.LogDebug("<<< Exiting setHttpHeader(key={Key})", key)
             ctx.SetHttpHeader(key, value)
             next ctx
 
@@ -235,7 +254,9 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let mustAccept (mimeTypes: string list) : HttpHandler =
+        logger.LogDebug(">>> Entering mustAccept(mimeTypes={MimeTypes})", mimeTypes)
         let acceptedMimeTypes: MediaTypeHeaderValue list =
+            logger.LogDebug(">>> Entering acceptedMimeTypes(MediaTypeHeaderValue={MediaTypeHeaderValue},list={List})", MediaTypeHeaderValue, list)
             mimeTypes |> List.map (MediaTypeHeaderValue.Parse)
 
         fun (next: HttpFunc) (ctx: HttpContext) ->
@@ -255,7 +276,9 @@ module Core =
     /// <param name="url">The URL to validate.</param>
     /// <returns>True if the URL is safe to redirect to, false otherwise.</returns>
     let isValidRedirectUrl (ctx: HttpContext) (url: string) =
+        logger.LogDebug(">>> Entering isValidRedirectUrl(ctx={Ctx})", ctx)
         if String.IsNullOrWhiteSpace url then
+            logger.LogDebug("<<< Exiting isValidRedirectUrl(ctx={Ctx})", ctx)
             false
         elif url.StartsWith '/' then
             true // Relative URL
@@ -266,6 +289,7 @@ module Core =
             | true, uri ->
                 // Only allow redirects to the same host
                 let requestHost = ctx.Request.Host
+                logger.LogDebug("isValidRedirectUrl(ctx={Ctx}): uri.Host → {Arg1}", ctx, uri.Host)
                 uri.Host = requestHost.Host
             | false, _ -> false
 
@@ -290,8 +314,11 @@ module Core =
                 Task.FromResult(Some ctx)
             else
                 let defaultHandler =
+                    logger.LogDebug(">>> Entering defaultHandler()")
                     fun (next: HttpFunc) (ctx: HttpContext) ->
+                        logger.LogDebug("<<< Exiting defaultHandler()")
                         let logger = ctx.GetLogger("Giraffe.Core")
+                        logger.LogDebug("defaultHandler(): logger → {Logger}", logger)
                         logger.LogWarning("Blocked potential open redirect to: {Location}", location)
                         ctx.Response.StatusCode <- 400
                         Task.FromResult(Some ctx)
@@ -310,6 +337,7 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let safeRedirectTo (permanent: bool) (location: string) : HttpHandler =
+        logger.LogDebug(">>> Entering safeRedirectTo(permanent={Permanent})", permanent)
         safeRedirectToExt permanent location None
 
     /// <summary>
@@ -322,7 +350,9 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let redirectTo (permanent: bool) (location: string) : HttpHandler =
+        logger.LogDebug(">>> Entering redirectTo(permanent={Permanent})", permanent)
         fun (_next: HttpFunc) (ctx: HttpContext) ->
+            logger.LogDebug("<<< Exiting redirectTo(permanent={Permanent})", permanent)
             ctx.Response.Redirect(location, permanent)
             Task.FromResult(Some ctx)
 
@@ -341,7 +371,9 @@ module Core =
     let bindJson<'T> (f: 'T -> HttpHandler) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogDebug(">>> Entering bindJson(f={F})", f)
                 let! model = ctx.BindJsonAsync<'T>()
+                logger.LogDebug("<<< Exiting bindJson(f={F})", f)
                 return! f model next ctx
             }
 
@@ -356,7 +388,9 @@ module Core =
     let bindXml<'T> (f: 'T -> HttpHandler) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogDebug(">>> Entering bindXml(f={F})", f)
                 let! model = ctx.BindXmlAsync<'T>()
+                logger.LogDebug("<<< Exiting bindXml(f={F})", f)
                 return! f model next ctx
             }
 
@@ -372,7 +406,9 @@ module Core =
     let bindForm<'T> (culture: CultureInfo option) (f: 'T -> HttpHandler) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogDebug(">>> Entering bindForm(culture={Culture},f={F})", culture, f)
                 let! model =
+                    logger.LogDebug("<<< Exiting bindForm(culture={Culture},f={F})", culture, f)
                     match culture with
                     | Some c -> ctx.BindFormAsync<'T> c
                     | None -> ctx.BindFormAsync<'T>()
@@ -420,9 +456,12 @@ module Core =
     /// <typeparam name="'T"></typeparam>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let bindQuery<'T> (culture: CultureInfo option) (f: 'T -> HttpHandler) : HttpHandler =
+        logger.LogDebug(">>> Entering bindQuery(culture={Culture},f={F})", culture, f)
         fun (next: HttpFunc) (ctx: HttpContext) ->
             let model =
+                logger.LogDebug(">>> Entering model()")
                 match culture with
+                    logger.LogDebug("<<< Exiting model()")
                 | Some c -> ctx.BindQueryString<'T> c
                 | None -> ctx.BindQueryString<'T>()
 
@@ -468,7 +507,9 @@ module Core =
     let bindModel<'T> (culture: CultureInfo option) (f: 'T -> HttpHandler) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogDebug(">>> Entering bindModel(culture={Culture},f={F})", culture, f)
                 let! model =
+                    logger.LogDebug("<<< Exiting bindModel(culture={Culture},f={F})", culture, f)
                     match culture with
                     | Some c -> ctx.BindModelAsync<'T> c
                     | None -> ctx.BindModelAsync<'T>()
@@ -498,6 +539,7 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let setBody (bytes: byte array) : HttpHandler =
+        logger.LogDebug(">>> Entering setBody(bytes={Bytes})", bytes)
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteBytesAsync bytes
 
     /// <summary>
@@ -506,6 +548,7 @@ module Core =
     /// <param name="str">The string value to be send back to the client.</param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let setBodyFromString (str: string) : HttpHandler =
+        logger.LogDebug(">>> Entering setBodyFromString(str={Str})", str)
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteStringAsync str
 
     /// <summary>
@@ -514,8 +557,10 @@ module Core =
     /// <param name="str">The string value to be send back to the client.</param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let text (str: string) : HttpHandler =
+        logger.LogDebug(">>> Entering text(str={Str})", str)
         let bytes = Encoding.UTF8.GetBytes str
 
+        logger.LogDebug("<<< Exiting text(str={Str})", str)
         fun (_: HttpFunc) (ctx: HttpContext) ->
             ctx.SetContentType "text/plain; charset=utf-8"
             ctx.WriteBytesAsync bytes
@@ -530,6 +575,7 @@ module Core =
     /// <typeparam name="'T"></typeparam>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let json<'T> (dataObj: 'T) : HttpHandler =
+        logger.LogDebug(">>> Entering json(dataObj={DataObj})", dataObj)
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteJsonAsync dataObj
 
     /// <summary>
@@ -541,6 +587,7 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let jsonChunked<'T> (dataObj: 'T) : HttpHandler =
+        logger.LogDebug(">>> Entering jsonChunked(dataObj={DataObj})", dataObj)
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteJsonChunkedAsync dataObj
 
     /// <summary>
@@ -552,6 +599,7 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let xml (dataObj: obj) : HttpHandler =
+        logger.LogDebug(">>> Entering xml(dataObj={DataObj})", dataObj)
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteXmlAsync dataObj
 
     /// <summary>
@@ -562,6 +610,7 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let htmlFile (filePath: string) : HttpHandler =
+        logger.LogDebug(">>> Entering htmlFile(filePath={FilePath})", filePath)
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteHtmlFileAsync filePath
 
     /// <summary>
@@ -571,8 +620,10 @@ module Core =
     /// <param name="html">The HTML string to be send back to the client.</param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let htmlString (html: string) : HttpHandler =
+        logger.LogDebug(">>> Entering htmlString(html={Html})", html)
         let bytes = Encoding.UTF8.GetBytes html
 
+        logger.LogDebug("<<< Exiting htmlString(html={Html})", html)
         fun (_: HttpFunc) (ctx: HttpContext) ->
             ctx.SetContentType "text/html; charset=utf-8"
             ctx.WriteBytesAsync bytes
@@ -584,6 +635,7 @@ module Core =
     /// <param name="markdown">The Markdown string to be sent back to the client.</param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let markdown (markdown: string) : HttpHandler =
+        logger.LogDebug(">>> Entering markdown(markdown={Markdown})", markdown)
         let bytes = Encoding.UTF8.GetBytes markdown
 
 #if NET8_0_OR_GREATER
@@ -603,8 +655,10 @@ module Core =
     /// <param name="htmlView">An `XmlNode` object to be send back to the client and which represents a valid HTML view.</param>
     /// <returns>A Giraffe `HttpHandler` function which can be composed into a bigger web application.</returns>
     let htmlView (htmlView: XmlNode) : HttpHandler =
+        logger.LogDebug(">>> Entering htmlView(htmlView={HtmlView})", htmlView)
         let bytes = RenderView.AsBytes.htmlDocument htmlView
 
+        logger.LogDebug("<<< Exiting htmlView(htmlView={HtmlView})", htmlView)
         fun (_: HttpFunc) (ctx: HttpContext) ->
             ctx.SetContentType "text/html; charset=utf-8"
             ctx.WriteBytesAsync bytes

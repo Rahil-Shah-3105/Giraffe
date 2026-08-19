@@ -39,7 +39,10 @@ module Csrf =
     let validateCsrfTokenExt (invalidTokenHandler: HttpHandler option) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogDebug(">>> Entering validateCsrfTokenExt(invalidTokenHandler=<redacted>)")
                 let antiforgery = ctx.GetService<IAntiforgery>()
+                logger.LogDebug("<<< Exiting validateCsrfTokenExt(invalidTokenHandler=<redacted>)")
+                logger.LogDebug("validateCsrfTokenExt(invalidTokenHandler=<redacted>): antiforgery → {Antiforgery}", antiforgery)
 
                 try
                     let! isValid = antiforgery.IsRequestValidAsync ctx
@@ -48,8 +51,11 @@ module Csrf =
                         return! next ctx
                     else
                         let defaultHandler =
+                            logger.LogDebug(">>> Entering defaultHandler()")
                             fun (next: HttpFunc) (ctx: HttpContext) ->
+                                logger.LogDebug("<<< Exiting defaultHandler()")
                                 let logger = ctx.GetLogger("Giraffe.Csrf")
+                                logger.LogDebug("defaultHandler(): logger → {Logger}", logger)
 
                                 logger.LogWarning(
                                     "CSRF token validation failed for request to {Path}",
@@ -103,7 +109,10 @@ module Csrf =
     let generateCsrfToken: HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogDebug(">>> Entering generateCsrfToken(HttpHandler={HttpHandler})", HttpHandler)
                 let antiforgery = ctx.GetService<IAntiforgery>()
+                logger.LogDebug("<<< Exiting generateCsrfToken(HttpHandler={HttpHandler})", HttpHandler)
+                logger.LogDebug("generateCsrfToken(HttpHandler={HttpHandler}): antiforgery → {Antiforgery}", HttpHandler, antiforgery)
                 let tokens = antiforgery.GetAndStoreTokens ctx
 
                 // Store token for view rendering
@@ -123,13 +132,20 @@ module Csrf =
     let csrfTokenJson: HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogDebug(">>> Entering csrfTokenJson(HttpHandler={HttpHandler})", HttpHandler)
                 let antiforgery = ctx.GetService<IAntiforgery>()
+                logger.LogDebug("<<< Exiting csrfTokenJson(HttpHandler={HttpHandler})", HttpHandler)
+                logger.LogDebug("csrfTokenJson(HttpHandler={HttpHandler}): antiforgery → {Antiforgery}", HttpHandler, antiforgery)
                 let tokens = antiforgery.GetAndStoreTokens ctx
 
                 let response =
+                    logger.LogDebug(">>> Entering response()")
                     {|
                         token = tokens.RequestToken
                         headerName = tokens.HeaderName
+                    logger.LogDebug("<<< Exiting response()")
+                    logger.LogDebug("response(): headerName → {HeaderName}", headerName)
+                    logger.LogWarning("response(): token → {Token}", token)
                     |}
 
                 return! Core.json response next ctx
@@ -145,10 +161,15 @@ module Csrf =
     let csrfTokenHtml: HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogDebug(">>> Entering csrfTokenHtml(HttpHandler={HttpHandler})", HttpHandler)
                 let antiforgery = ctx.GetService<IAntiforgery>()
+                logger.LogDebug("<<< Exiting csrfTokenHtml(HttpHandler={HttpHandler})", HttpHandler)
+                logger.LogDebug("csrfTokenHtml(HttpHandler={HttpHandler}): antiforgery → {Antiforgery}", HttpHandler, antiforgery)
                 let tokens = antiforgery.GetAndStoreTokens(ctx)
 
+                logger.LogDebug("csrfTokenHtml(HttpHandler={HttpHandler}): tokens → {Tokens}", HttpHandler, tokens)
                 let html =
+                    logger.LogDebug(">>> Entering html()")
                     sprintf "<input type=\"hidden\" name=\"%s\" value=\"%s\" />" tokens.HeaderName tokens.RequestToken
 
                 return! Core.htmlString html next ctx

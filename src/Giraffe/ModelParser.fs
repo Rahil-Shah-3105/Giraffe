@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 /// <summary>
 /// Module for parsing models from a generic data set.
 /// </summary>
@@ -17,39 +19,54 @@ module ModelParser =
         member this.IsGeneric() = this.GetTypeInfo().IsGenericType
 
         member this.IsFSharpList() =
+            LogRiteLogging._logger.LogDebug(">>> Entering IsFSharpList()")
             match this.IsGeneric() with
+                LogRiteLogging._logger.LogDebug("<<< Exiting IsFSharpList()")
             | false -> false
             | true ->
                 let t = this.GetGenericTypeDefinition()
+                LogRiteLogging._logger.LogDebug("IsFSharpList(): t → {T}", t)
                 t = typedefof<Microsoft.FSharp.Collections.List<_>>
 
         member this.IsFSharpOption() =
+            LogRiteLogging._logger.LogDebug(">>> Entering IsFSharpOption()")
             match this.IsGeneric() with
+                LogRiteLogging._logger.LogDebug("<<< Exiting IsFSharpOption()")
             | false -> false
             | true ->
                 let t = this.GetGenericTypeDefinition()
+                LogRiteLogging._logger.LogDebug("IsFSharpOption(): t → {T}", t)
                 t = typedefof<Microsoft.FSharp.Core.Option<_>>
 
         member this.GetGenericType() = this.GetGenericArguments().[0]
 
         member this.MakeNoneCase() =
+            LogRiteLogging._logger.LogDebug(">>> Entering MakeNoneCase()")
             let cases = FSharpType.GetUnionCases this
+            LogRiteLogging._logger.LogDebug("<<< Exiting MakeNoneCase()")
             FSharpValue.MakeUnion(cases.[0], [||])
 
         member this.MakeSomeCase(value: obj) =
+            LogRiteLogging._logger.LogDebug(">>> Entering MakeSomeCase(value={Value})", value)
             let cases = FSharpType.GetUnionCases this
+            LogRiteLogging._logger.LogDebug("<<< Exiting MakeSomeCase(value={Value})", value)
             FSharpValue.MakeUnion(cases.[1], [| value |])
 
 
 
     /// Returns either a successfully parsed object `'T` or a `string` error message containing the parsing error.
     let rec private parseValue (t: Type) (rawValues: StringValues) (culture: CultureInfo) : Result<obj, string> =
+        LogRiteLogging._logger.LogDebug(">>> Entering parseValue(t={T})", t)
 
         // First establish some basic type information:
+        LogRiteLogging._logger.LogDebug("<<< Exiting parseValue(t={T})", t)
         let isGeneric = t.IsGeneric()
+        LogRiteLogging._logger.LogDebug("parseValue(t={T}): isGeneric → {IsGeneric}", t, isGeneric)
 
         let isList, isOption, genArgType =
+            LogRiteLogging._logger.LogDebug(">>> Entering isList(genArgType={GenArgType})", genArgType)
             match isGeneric with
+                LogRiteLogging._logger.LogDebug("<<< Exiting isList(genArgType={GenArgType})", genArgType)
             | true -> t.IsFSharpList(), t.IsFSharpOption(), t.GetGenericType()
             | false -> false, false, null
 
@@ -135,7 +152,9 @@ module ModelParser =
                         |> Error
         else
             let converter =
+                LogRiteLogging._logger.LogDebug(">>> Entering converter()")
                 if t.GetTypeInfo().IsValueType then
+                    LogRiteLogging._logger.LogDebug("<<< Exiting converter()")
                     (typedefof<Nullable<_>>).MakeGenericType([| t |])
                 else
                     t
