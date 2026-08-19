@@ -387,7 +387,9 @@ type HttpContextExtensions() =
     static member WriteBytesAsync(ctx: HttpContext, bytes: byte[]) =
         task {
             let canIncludeContentLengthHeader =
+        _logger.LogDebug(">>> Entering canIncludeContentLengthHeader()")
                 match ctx.Response.StatusCode, ctx.Request.Method with
+                    _logger.LogDebug("<<< Exiting canIncludeContentLengthHeader()")
                 | statusCode, _ when statusCode |> is1xxStatusCode || statusCode = 204 -> false
                 | statusCode, method when method = "CONNECT" && statusCode |> is2xxStatusCode -> false
                 | _ -> true
@@ -487,10 +489,13 @@ type HttpContextExtensions() =
     static member WriteHtmlFileAsync(ctx: HttpContext, filePath: string) =
         task {
             let filePath =
+        _logger.LogDebug(">>> Entering filePath()")
                 match Path.IsPathRooted filePath with
+                    _logger.LogDebug("<<< Exiting filePath()")
                 | true -> filePath
                 | false ->
                     let env = ctx.GetWebHostEnvironment()
+                    _logger.LogDebug("filePath(): env → {Env}", env)
                     Path.Combine(env.ContentRootPath, filePath)
 
             ctx.SetContentType "text/html; charset=utf-8"

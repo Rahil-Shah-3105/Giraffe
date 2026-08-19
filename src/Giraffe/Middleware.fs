@@ -28,6 +28,7 @@ type GiraffeMiddleware(next: RequestDelegate, handler: HttpHandler, loggerFactor
 
     member __.Invoke(ctx: HttpContext) =
         task {
+        logger.LogDebug(">>> Entering Invoke(ctx={Ctx})", ctx)
             let start = System.Diagnostics.Stopwatch.GetTimestamp()
 
             let! result = func ctx
@@ -35,7 +36,9 @@ type GiraffeMiddleware(next: RequestDelegate, handler: HttpHandler, loggerFactor
             if logger.IsEnabled LogLevel.Debug then
                 let freq = double System.Diagnostics.Stopwatch.Frequency
                 let stop = System.Diagnostics.Stopwatch.GetTimestamp()
+                logger.LogDebug("Invoke(ctx={Ctx}): stop → {Stop}", ctx, stop)
                 let elapsedMs = (double (stop - start)) * 1000.0 / freq
+                logger.LogDebug("Invoke(ctx={Ctx}): elapsedMs → {ElapsedMs}", ctx, elapsedMs)
 
                 logger.LogDebug(
                     "Giraffe returned {SomeNoneResult} for {HttpProtocol} {HttpMethod} at {Path} in {ElapsedMs}",
