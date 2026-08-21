@@ -39,7 +39,10 @@ module Csrf =
     let validateCsrfTokenExt (invalidTokenHandler: HttpHandler option) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogDebug(">>> Entering validateCsrfTokenExt(invalidTokenHandler=<redacted>)")
                 let antiforgery = ctx.GetService<IAntiforgery>()
+                logger.LogDebug("<<< Exiting validateCsrfTokenExt(invalidTokenHandler=<redacted>)")
+                logger.LogDebug("validateCsrfTokenExt(invalidTokenHandler=<redacted>): antiforgery → {Antiforgery}", antiforgery)
 
                 try
                     let! isValid = antiforgery.IsRequestValidAsync ctx
@@ -49,7 +52,10 @@ module Csrf =
                     else
                         let defaultHandler =
                             fun (next: HttpFunc) (ctx: HttpContext) ->
+                                logger.LogDebug(">>> Entering defaultHandler()")
                                 let logger = ctx.GetLogger("Giraffe.Csrf")
+                                logger.LogDebug("<<< Exiting defaultHandler()")
+                                logger.LogDebug("defaultHandler(): logger → {Logger}", logger)
 
                                 logger.LogWarning(
                                     "CSRF token validation failed for request to {Path}",
@@ -103,7 +109,10 @@ module Csrf =
     let generateCsrfToken: HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogDebug(">>> Entering generateCsrfToken(HttpHandler={HttpHandler})", HttpHandler)
                 let antiforgery = ctx.GetService<IAntiforgery>()
+                logger.LogDebug("<<< Exiting generateCsrfToken(HttpHandler={HttpHandler})", HttpHandler)
+                logger.LogDebug("generateCsrfToken(HttpHandler={HttpHandler}): antiforgery → {Antiforgery}", HttpHandler, antiforgery)
                 let tokens = antiforgery.GetAndStoreTokens ctx
 
                 // Store token for view rendering
@@ -123,7 +132,10 @@ module Csrf =
     let csrfTokenJson: HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogDebug(">>> Entering csrfTokenJson(HttpHandler={HttpHandler})", HttpHandler)
                 let antiforgery = ctx.GetService<IAntiforgery>()
+                logger.LogDebug("<<< Exiting csrfTokenJson(HttpHandler={HttpHandler})", HttpHandler)
+                logger.LogDebug("csrfTokenJson(HttpHandler={HttpHandler}): antiforgery → {Antiforgery}", HttpHandler, antiforgery)
                 let tokens = antiforgery.GetAndStoreTokens ctx
 
                 let response =
@@ -145,10 +157,14 @@ module Csrf =
     let csrfTokenHtml: HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogDebug(">>> Entering csrfTokenHtml(HttpHandler={HttpHandler})", HttpHandler)
                 let antiforgery = ctx.GetService<IAntiforgery>()
+                logger.LogDebug("<<< Exiting csrfTokenHtml(HttpHandler={HttpHandler})", HttpHandler)
+                logger.LogDebug("csrfTokenHtml(HttpHandler={HttpHandler}): antiforgery → {Antiforgery}", HttpHandler, antiforgery)
                 let tokens = antiforgery.GetAndStoreTokens(ctx)
 
                 let html =
+                    logger.LogDebug(">>> Entering html()")
                     sprintf "<input type=\"hidden\" name=\"%s\" value=\"%s\" />" tokens.HeaderName tokens.RequestToken
 
                 return! Core.htmlString html next ctx

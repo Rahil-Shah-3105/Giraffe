@@ -8,7 +8,9 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Http.Headers
 open Microsoft.Extensions.Primitives
 open Microsoft.Net.Http.Headers
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 type Precondition =
     | NoConditionsSpecified
     | ResourceNotModified
@@ -29,6 +31,7 @@ type EntityTagHeaderValue with
 type HttpContext with
 
     member private this.IsHeadOrGetRequest() =
+        LogRiteLogging._logger.LogDebug(">>> Entering private()")
         HttpMethods.IsHead this.Request.Method || HttpMethods.IsGet this.Request.Method
 
     member private this.ValidateIfMatch (eTag: EntityTagHeaderValue option) (requestHeaders: RequestHeaders) =
@@ -132,7 +135,9 @@ type PreconditionExtensions() =
 
         // Helper bind functions to chain validation functions
         let bind (result: RequestHeaders -> Precondition) =
+            LogRiteLogging._logger.LogDebug(">>> Entering bind(result={Result})", result)
             function
+                LogRiteLogging._logger.LogDebug("<<< Exiting bind(result={Result})", result)
             | NoConditionsSpecified -> result requestHeaders
             | AllConditionsMet ->
                 match result requestHeaders with
@@ -144,7 +149,9 @@ type PreconditionExtensions() =
             | ResourceNotModified -> ResourceNotModified
 
         let ifNotSpecified (result: RequestHeaders -> Precondition) =
+            LogRiteLogging._logger.LogDebug(">>> Entering ifNotSpecified(result={Result})", result)
             function
+                LogRiteLogging._logger.LogDebug("<<< Exiting ifNotSpecified(result={Result})", result)
             | NoConditionsSpecified -> result requestHeaders
             | AllConditionsMet -> AllConditionsMet
             | ConditionFailed -> ConditionFailed
@@ -209,7 +216,9 @@ type PreconditionExtensions() =
 let validatePreconditions (eTag: EntityTagHeaderValue option) (lastModified: DateTimeOffset option) : HttpHandler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
+        LogRiteLogging._logger.LogDebug(">>> Entering validatePreconditions(eTag={ETag})", eTag)
             match ctx.ValidatePreconditions(eTag, lastModified) with
+                LogRiteLogging._logger.LogDebug("<<< Exiting validatePreconditions(eTag={ETag})", eTag)
             | ConditionFailed -> return ctx.PreconditionFailedResponse()
             | ResourceNotModified -> return ctx.NotModifiedResponse()
             | AllConditionsMet

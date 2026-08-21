@@ -4,13 +4,17 @@ open System
 open System.Text.RegularExpressions
 open Microsoft.FSharp.Reflection
 open FSharp.Core
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 // ---------------------------
 // String matching functions
 // ---------------------------
 
 let private formatStringMap =
+    LogRiteLogging._logger.LogDebug(">>> Entering formatStringMap()")
     let decodeSlashes (str: string) =
+        LogRiteLogging._logger.LogDebug(">>> Entering decodeSlashes(str={Str})", str)
         // Kestrel has made the weird decision to
         // partially decode a route argument, which
         // means that a given route argument would get
@@ -20,14 +24,18 @@ let private formatStringMap =
         //
         // For more information please check:
         // https://github.com/aspnet/Mvc/issues/4599
+        LogRiteLogging._logger.LogDebug("<<< Exiting decodeSlashes(str={Str})", str)
         str.Replace("%2F", "/").Replace("%2f", "/")
 
     let parseGuid (str: string) =
+        LogRiteLogging._logger.LogDebug(">>> Entering parseGuid(str={Str})", str)
         match str.Length with
+            LogRiteLogging._logger.LogDebug("<<< Exiting parseGuid(str={Str})", str)
         | 22 -> ShortGuid.toGuid str
         | _ -> Guid str
 
     let guidPattern =
+        LogRiteLogging._logger.LogDebug(">>> Entering guidPattern()")
         "([0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12}|[0-9A-Fa-f]{32}|[-_0-9A-Za-z]{22})"
 
     let shortIdPattern = "([-_0-9A-Za-z]{10}[048AEIMQUYcgkosw])"
@@ -67,8 +75,11 @@ type MatchOptions =
     static member IgnoreCaseExact = { IgnoreCase = true; MatchMode = Exact }
 
 let private convertToRegexPatternAndFormatChars (mode: MatchMode) (formatString: string) =
+    LogRiteLogging._logger.LogDebug(">>> Entering convertToRegexPatternAndFormatChars(mode={Mode})", mode)
     let rec convert (chars: char list) =
+        LogRiteLogging._logger.LogDebug(">>> Entering convert(chars={Chars})", chars)
         match chars with
+            LogRiteLogging._logger.LogDebug("<<< Exiting convert(chars={Chars})", chars)
         | '%' :: '%' :: tail ->
             let pattern, formatChars = convert tail
             "%" + pattern, formatChars
@@ -82,7 +93,9 @@ let private convertToRegexPatternAndFormatChars (mode: MatchMode) (formatString:
         | [] -> "", []
 
     let inline formatRegex mode pattern =
+        LogRiteLogging._logger.LogDebug(">>> Entering inline(formatRegex={FormatRegex},mode={Mode},pattern={Pattern})", formatRegex, mode, pattern)
         match mode with
+            LogRiteLogging._logger.LogDebug("<<< Exiting inline(formatRegex={FormatRegex},mode={Mode},pattern={Pattern})", formatRegex, mode, pattern)
         | Exact -> "^" + pattern + "$"
         | StartsWith -> "^" + pattern
         | EndsWith -> pattern + "$"

@@ -10,20 +10,26 @@ open Microsoft.AspNetCore.Routing
 open Microsoft.FSharp.Reflection
 open FSharp.Core
 open Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 module RouteTemplateBuilder =
     // We use this regex route constraint to be compatible with Giraffe's default router,
     // which supports ShortGuid's.
     // More information on ASP.NET route constraints:
     // https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-8.0#route-constraints
     let private guidPattern =
+        LogRiteLogging._logger.LogDebug(">>> Entering guidPattern()")
         "^[0-9A-Fa-f]{{8}}-[0-9A-Fa-f]{{4}}-[0-9A-Fa-f]{{4}}-[0-9A-Fa-f]{{4}}-[0-9A-Fa-f]{{12}}$|^[0-9A-Fa-f]{{32}}$|^[-_0-9A-Za-z]{{22}}$"
 
     let private shortIdPattern = "([-_0-9A-Za-z]{{10}}[048AEIMQUYcgkosw])"
 
     let private getConstraint (i: int) (c: char) (name: string option) =
+        LogRiteLogging._logger.LogDebug(">>> Entering getConstraint(i={I})", i)
         let name = Option.defaultValue (sprintf "%c%i" c i) name
 
+        LogRiteLogging._logger.LogDebug("<<< Exiting getConstraint(i={I})", i)
+        LogRiteLogging._logger.LogDebug("getConstraint(i={I}): name → {Name}", i, name)
         match c with
         | 'b' -> name, sprintf "{%s:bool}" name // bool
         | 'c' -> name, sprintf "{%s:length(1)}" name // char
@@ -128,7 +134,9 @@ module private RequestDelegateBuilder =
 
         fun (ctx: HttpContext) ->
             task {
+            LogRiteLogging._logger.LogDebug(">>> Entering createRequestDelegate(handler={Handler})", handler)
                 let! result = func ctx
+                LogRiteLogging._logger.LogDebug("<<< Exiting createRequestDelegate(handler={Handler})", handler)
                 return handleResult result ctx
             }
             :> Task
@@ -137,7 +145,9 @@ module private RequestDelegateBuilder =
     let createTokenizedRequestDelegate (mappings: (string * char) list) (tokenizedHandler: 'T -> HttpHandler) =
         fun (ctx: HttpContext) ->
             task {
+            LogRiteLogging._logger.LogDebug("<<< Exiting createTokenizedRequestDelegate(mappings=<redacted>)")
                 let tuple = ctx.GetRouteData() |> convertToTuple mappings :?> 'T
+                LogRiteLogging._logger.LogDebug("createTokenizedRequestDelegate(mappings=<redacted>): tuple → {Tuple}", tuple)
                 let! result = tokenizedHandler tuple earlyReturn ctx
                 return handleResult result
             }
