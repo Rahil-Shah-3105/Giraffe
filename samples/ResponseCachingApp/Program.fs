@@ -5,18 +5,27 @@ open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
 open Giraffe
 open Giraffe.EndpointRouting
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 let expensiveOperation () : DateTime =
+    LogRiteLogging._logger.LogDebug(">>> Entering expensiveOperation()")
     let fiveSeconds = 5000 // ms
     Threading.Thread.Sleep fiveSeconds
+    LogRiteLogging._logger.LogDebug("<<< Exiting expensiveOperation()")
     DateTime.Now
 
 let dateTimeHandler: HttpHandler =
     fun (_next: HttpFunc) (ctx: HttpContext) ->
+        LogRiteLogging._logger.LogDebug(">>> Entering dateTimeHandler(HttpHandler={HttpHandler})", HttpHandler)
         let query1 = ctx.GetQueryStringValue("query1")
+        LogRiteLogging._logger.LogDebug("<<< Exiting dateTimeHandler(HttpHandler={HttpHandler})", HttpHandler)
+        LogRiteLogging._logger.LogDebug("dateTimeHandler(HttpHandler={HttpHandler}): query1 → {Query1}", HttpHandler, query1)
         let query2 = ctx.GetQueryStringValue("query2")
 
+        LogRiteLogging._logger.LogDebug("dateTimeHandler(HttpHandler={HttpHandler}): query2 → {Query2}", HttpHandler, query2)
         let now = expensiveOperation ()
+        LogRiteLogging._logger.LogDebug("dateTimeHandler(HttpHandler={HttpHandler}): now → {Now}", HttpHandler, now)
         setStatusCode 200 |> ignore // for testing purposes
 
         match (query1, query2) with
@@ -26,7 +35,9 @@ let dateTimeHandler: HttpHandler =
 let responseCachingMiddleware: HttpHandler =
     responseCaching
         (Public(TimeSpan.FromSeconds(float 30)))
+        LogRiteLogging._logger.LogDebug(">>> Entering responseCachingMiddleware(HttpHandler={HttpHandler})", HttpHandler)
         (Some "Accept, Accept-Encoding")
+        LogRiteLogging._logger.LogDebug("<<< Exiting responseCachingMiddleware(HttpHandler={HttpHandler})", HttpHandler)
         (Some [| "query1"; "query2" |])
 
 let endpoints: Endpoint list =
@@ -39,15 +50,18 @@ let endpoints: Endpoint list =
                 route "/vary/not" (publicResponseCaching 30 None >=> dateTimeHandler)
                 route "/vary/yes" (responseCachingMiddleware >=> dateTimeHandler)
             ]
+        LogRiteLogging._logger.LogDebug(">>> Entering endpoints(Endpoint={Endpoint},list={List})", Endpoint, list)
         ]
     ]
 
 let notFoundHandler = "Not Found" |> text |> RequestErrors.notFound
 
 let configureServices (services: IServiceCollection) =
+    LogRiteLogging._logger.LogDebug(">>> Entering configureServices(services={Services})", services)
     services.AddRouting().AddResponseCaching().AddGiraffe() |> ignore
 
 let configureApp (appBuilder: IApplicationBuilder) =
+    LogRiteLogging._logger.LogDebug(">>> Entering configureApp(appBuilder={AppBuilder})", appBuilder)
     appBuilder
         .UseRouting()
         .UseResponseCaching()
@@ -57,9 +71,11 @@ let configureApp (appBuilder: IApplicationBuilder) =
 [<EntryPoint>]
 let main args =
     let builder = WebApplication.CreateBuilder(args)
+    LogRiteLogging._logger.LogDebug(">>> Entering main(args={Args})", args)
     configureServices builder.Services
 
     let app = builder.Build()
+    LogRiteLogging._logger.LogDebug("main(args={Args}): app → {App}", args, app)
 
     if app.Environment.IsDevelopment() then
         app.UseDeveloperExceptionPage() |> ignore
@@ -67,4 +83,5 @@ let main args =
     configureApp app
     app.Run()
 
+    LogRiteLogging._logger.LogDebug("<<< Exiting main(args={Args})", args)
     0

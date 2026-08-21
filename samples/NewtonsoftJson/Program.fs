@@ -5,7 +5,9 @@ open Microsoft.Extensions.Hosting
 open Giraffe
 open Giraffe.EndpointRouting
 open Newtonsoft.Json
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<RequireQualifiedAccess>]
 module NewtonsoftJson =
     open System.IO
@@ -31,6 +33,9 @@ module NewtonsoftJson =
             member __.SerializeToStreamAsync (x: 'T) (stream: Stream) =
                 task {
                     use memoryStream = rmsManager.GetStream("giraffe-json-serialize-to-stream")
+                    LogRiteLogging._logger.LogDebug("SerializeToStreamAsync(x={X}): memoryStream → {MemoryStream}", x, memoryStream)
+                    LogRiteLogging._logger.LogDebug("SerializeToStreamAsync(x={X}): streamWriter → {StreamWriter}", x, streamWriter)
+                    LogRiteLogging._logger.LogDebug("SerializeToStreamAsync(x={X}): jsonTextWriter → {JsonTextWriter}", x, jsonTextWriter)
                     use streamWriter = new StreamWriter(memoryStream, utf8EncodingWithoutBom)
                     use jsonTextWriter = new JsonTextWriter(streamWriter)
                     serializer.Serialize(jsonTextWriter, x)
@@ -54,10 +59,14 @@ module NewtonsoftJson =
 
             member __.DeserializeAsync<'T>(stream: Stream) : Task<'T> =
                 task {
+                LogRiteLogging._logger.LogDebug("<<< Exiting DeserializeAsync(Stream={Stream})", Stream)
+                LogRiteLogging._logger.LogDebug("DeserializeAsync(Stream={Stream}): memoryStream → {MemoryStream}", Stream, memoryStream)
                     use memoryStream = rmsManager.GetStream("giraffe-json-deserialize")
                     do! stream.CopyToAsync(memoryStream)
                     memoryStream.Seek(0L, SeekOrigin.Begin) |> ignore
                     use streamReader = new StreamReader(memoryStream)
+                    LogRiteLogging._logger.LogDebug("DeserializeAsync(Stream={Stream}): streamReader → {StreamReader}", Stream, streamReader)
+                    LogRiteLogging._logger.LogDebug("DeserializeAsync(Stream={Stream}): jsonTextReader → {JsonTextReader}", Stream, jsonTextReader)
                     use jsonTextReader = new JsonTextReader(streamReader)
 
                     return
@@ -74,6 +83,7 @@ let endpoints: Endpoint list =
 let notFoundHandler = "Not Found" |> text |> RequestErrors.notFound
 
 let configureServices (services: IServiceCollection) =
+    LogRiteLogging._logger.LogDebug(">>> Entering configureServices(services={Services})", services)
     services
         .AddSingleton<Json.ISerializer>(fun serviceProvider ->
             let rmsManager =
@@ -90,17 +100,23 @@ let configureServices (services: IServiceCollection) =
     |> ignore
 
 let configureApp (appBuilder: IApplicationBuilder) =
+    LogRiteLogging._logger.LogDebug(">>> Entering configureApp(appBuilder={AppBuilder})", appBuilder)
     appBuilder.UseRouting().UseResponseCaching().UseEndpoints(_.MapGiraffeEndpoints(endpoints)).UseGiraffe
+    LogRiteLogging._logger.LogDebug("<<< Exiting configureApp(appBuilder={AppBuilder})", appBuilder)
         notFoundHandler
 
 [<EntryPoint>]
 let main (args: string array) : int =
+    LogRiteLogging._logger.LogDebug(">>> Entering main(args={Args})", args)
     let builder = WebApplication.CreateBuilder(args)
     configureServices builder.Services
+    LogRiteLogging._logger.LogDebug("main(args={Args}): builder → {Builder}", args, builder)
 
     let app = builder.Build()
+    LogRiteLogging._logger.LogDebug("main(args={Args}): app → {App}", args, app)
 
     configureApp app
     app.Run()
 
+    LogRiteLogging._logger.LogDebug("<<< Exiting main(args={Args})", args)
     0

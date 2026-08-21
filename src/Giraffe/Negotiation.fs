@@ -5,7 +5,9 @@ open System
 open System.Collections.Generic
 open System.Runtime.CompilerServices
 open Microsoft.AspNetCore.Http
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 // ---------------------------
 // Configuration types
 // ---------------------------
@@ -34,9 +36,11 @@ type INegotiationConfig =
 
 let private unacceptableHandler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
+        LogRiteLogging._logger.LogDebug(">>> Entering unacceptableHandler()")
         (setStatusCode 406
          >=> ((ctx.Request.Headers.["Accept"]).ToString()
               |> sprintf "%s is unacceptable by the server."
+        LogRiteLogging._logger.LogDebug("<<< Exiting unacceptableHandler()")
               |> text))
             next
             ctx
@@ -66,6 +70,7 @@ type DefaultNegotiationConfig() =
                     "application/xml", xml
                     "text/xml", xml
                     "text/plain", (fun x -> x.ToString() |> text)
+                LogRiteLogging._logger.LogDebug(">>> Entering Rules()")
                 ]
 
         member __.UnacceptableHandler = unacceptableHandler
@@ -175,4 +180,5 @@ let negotiateWith
 /// <param name="ctx"></param>
 /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
 let negotiate (responseObj: obj) : HttpHandler =
+    LogRiteLogging._logger.LogDebug(">>> Entering negotiate(responseObj={ResponseObj})", responseObj)
     fun (_: HttpFunc) (ctx: HttpContext) -> ctx.NegotiateAsync responseObj

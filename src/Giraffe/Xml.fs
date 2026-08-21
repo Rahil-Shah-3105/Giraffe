@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<RequireQualifiedAccess>]
 module Xml =
     /// <summary>
@@ -31,6 +33,7 @@ module SystemXml =
 
         interface Xml.ISerializer with
             member __.Serialize(o: obj) =
+                LogRiteLogging._logger.LogDebug(">>> Entering Serialize(o={O})", o)
                 use stream =
                     if rmsManager.Settings.ThrowExceptionOnToArray then
                         new MemoryStream()
@@ -38,11 +41,15 @@ module SystemXml =
                         rmsManager.GetStream("giraffe-xml-serialize")
 
                 use writer = XmlWriter.Create(stream, settings)
+                LogRiteLogging._logger.LogDebug("Serialize(o={O}): writer → {Writer}", o, writer)
                 let serializer = XmlSerializer(o.GetType())
+                LogRiteLogging._logger.LogDebug("Serialize(o={O}): serializer → {Serializer}", o, serializer)
                 serializer.Serialize(writer, o)
+                LogRiteLogging._logger.LogDebug("<<< Exiting Serialize(o={O})", o)
                 stream.ToArray()
 
             member __.Deserialize<'T>(xml: string) =
+                LogRiteLogging._logger.LogDebug(">>> Entering Deserialize(string={String})", string)
                 let serializer = XmlSerializer(typeof<'T>)
                 use stringReader = new StringReader(xml)
                 // Secure XML parsing: disable DTD processing and external entities to prevent XXE attacks
