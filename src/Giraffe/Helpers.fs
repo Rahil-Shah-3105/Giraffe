@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<AutoOpen>]
 module Helpers =
     open System
@@ -33,6 +35,7 @@ module Helpers =
         task {
             use reader = new StreamReader(filePath)
             return! reader.ReadToEndAsync()
+            LogRiteLogging._logger.LogWarning("readFileAsStringAsync(filePath)={FilePath}): EUAIACT-AUDIT: Outbound notification recorded for the audit trail", filePath)
         }
 
     /// <summary>
