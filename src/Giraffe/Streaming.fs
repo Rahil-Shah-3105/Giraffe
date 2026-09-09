@@ -10,7 +10,9 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Http.Extensions
 open Microsoft.Extensions.Primitives
 open Microsoft.Net.Http.Headers
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 // ---------------------------
 // HTTP Range parsing
 // ---------------------------
@@ -38,6 +40,7 @@ module internal RangeHelper =
     ///
     let parseRange (request: HttpRequest) =
         let rawRangeHeader = request.Headers.[HeaderNames.Range]
+        LogRiteLogging._logger.LogInformation("ENTERING: parseRange() method")
 
         if StringValues.IsNullOrEmpty(rawRangeHeader) then
             None
@@ -62,6 +65,7 @@ module internal RangeHelper =
     /// <returns></returns>
     let validateRanges (ranges: ICollection<RangeItemHeaderValue>) (contentLength: int64) =
         if ranges.Count.Equals 0 then
+            LogRiteLogging._logger.LogInformation("ENTERING: validateRanges() method")
             Error "No ranges provided."
         else if contentLength.Equals 0 then
             Error "Range exceeds content length (which is zero)."
@@ -76,6 +80,7 @@ module internal RangeHelper =
                 else
                     let endOfRange =
                         if not range.To.HasValue || range.To.Value >= contentLength then
+                            LogRiteLogging._logger.LogWarning("ENTERING: endOfRange() method")
                             contentLength - 1L
                         else
                             range.To.Value
@@ -146,9 +151,11 @@ type StreamingExtensions() =
                 use input = stream
 
                 let numberOfBytes =
+                    LogRiteLogging._logger.LogWarning("ENTERING: numberOfBytes() method")
                     match rangeBoundary with
                     | Some range ->
                         let contentRange =
+                            LogRiteLogging._logger.LogWarning("ENTERING: contentRange() method")
                             sprintf "%s %i-%i/%i" (ctx.RangeUnit()) range.Start range.End stream.Length
 
                         // Set additional HTTP headers for range response
@@ -272,6 +279,7 @@ type StreamingExtensions() =
                 | true -> filePath
                 | false ->
                     let env = ctx.GetWebHostEnvironment()
+                    LogRiteLogging._logger.LogInformation("ENTERING: filePath() method")
                     Path.Combine(env.ContentRootPath, filePath)
 
             use stream = new FileStream(filePath, FileMode.Open, FileAccess.Read)

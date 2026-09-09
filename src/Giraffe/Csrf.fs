@@ -39,6 +39,7 @@ module Csrf =
     let validateCsrfTokenExt (invalidTokenHandler: HttpHandler option) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogInformation("ENTERING: validateCsrfTokenExt() method")
                 let antiforgery = ctx.GetService<IAntiforgery>()
 
                 try
@@ -103,6 +104,7 @@ module Csrf =
     let generateCsrfToken: HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogInformation("ENTERING: generateCsrfToken() method")
                 let antiforgery = ctx.GetService<IAntiforgery>()
                 let tokens = antiforgery.GetAndStoreTokens ctx
 
@@ -123,6 +125,7 @@ module Csrf =
     let csrfTokenJson: HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogInformation("ENTERING: csrfTokenJson() method")
                 let antiforgery = ctx.GetService<IAntiforgery>()
                 let tokens = antiforgery.GetAndStoreTokens ctx
 
@@ -145,10 +148,12 @@ module Csrf =
     let csrfTokenHtml: HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogInformation("ENTERING: csrfTokenHtml() method")
                 let antiforgery = ctx.GetService<IAntiforgery>()
                 let tokens = antiforgery.GetAndStoreTokens(ctx)
 
                 let html =
+                    logger.LogWarning("ENTERING: html() method")
                     sprintf "<input type=\"hidden\" name=\"%s\" value=\"%s\" />" tokens.HeaderName tokens.RequestToken
 
                 return! Core.htmlString html next ctx

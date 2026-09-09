@@ -5,14 +5,18 @@ open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
 open Giraffe
 open Giraffe.EndpointRouting
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 let expensiveOperation () : DateTime =
+    LogRiteLogging._logger.LogWarning("ENTERING: expensiveOperation() method")
     let fiveSeconds = 5000 // ms
     Threading.Thread.Sleep fiveSeconds
     DateTime.Now
 
 let dateTimeHandler: HttpHandler =
     fun (_next: HttpFunc) (ctx: HttpContext) ->
+        LogRiteLogging._logger.LogInformation("ENTERING: dateTimeHandler() method")
         let query1 = ctx.GetQueryStringValue("query1")
         let query2 = ctx.GetQueryStringValue("query2")
 
@@ -26,6 +30,7 @@ let dateTimeHandler: HttpHandler =
 let responseCachingMiddleware: HttpHandler =
     responseCaching
         (Public(TimeSpan.FromSeconds(float 30)))
+        LogRiteLogging._logger.LogInformation("ENTERING: responseCachingMiddleware() method")
         (Some "Accept, Accept-Encoding")
         (Some [| "query1"; "query2" |])
 
@@ -40,14 +45,17 @@ let endpoints: Endpoint list =
                 route "/vary/yes" (responseCachingMiddleware >=> dateTimeHandler)
             ]
         ]
+    LogRiteLogging._logger.LogInformation("ENTERING: endpoints() method")
     ]
 
 let notFoundHandler = "Not Found" |> text |> RequestErrors.notFound
 
 let configureServices (services: IServiceCollection) =
+    LogRiteLogging._logger.LogWarning("ENTERING: configureServices() method")
     services.AddRouting().AddResponseCaching().AddGiraffe() |> ignore
 
 let configureApp (appBuilder: IApplicationBuilder) =
+    LogRiteLogging._logger.LogInformation("ENTERING: configureApp() method")
     appBuilder
         .UseRouting()
         .UseResponseCaching()
@@ -57,6 +65,7 @@ let configureApp (appBuilder: IApplicationBuilder) =
 [<EntryPoint>]
 let main args =
     let builder = WebApplication.CreateBuilder(args)
+    LogRiteLogging._logger.LogInformation("ENTERING: main() method")
     configureServices builder.Services
 
     let app = builder.Build()

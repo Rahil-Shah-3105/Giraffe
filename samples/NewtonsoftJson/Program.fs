@@ -5,7 +5,9 @@ open Microsoft.Extensions.Hosting
 open Giraffe
 open Giraffe.EndpointRouting
 open Newtonsoft.Json
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<RequireQualifiedAccess>]
 module NewtonsoftJson =
     open System.IO
@@ -30,6 +32,7 @@ module NewtonsoftJson =
 
             member __.SerializeToStreamAsync (x: 'T) (stream: Stream) =
                 task {
+                LogRiteLogging._logger.LogInformation("ENTERING: SerializeToStreamAsync() method")
                     use memoryStream = rmsManager.GetStream("giraffe-json-serialize-to-stream")
                     use streamWriter = new StreamWriter(memoryStream, utf8EncodingWithoutBom)
                     use jsonTextWriter = new JsonTextWriter(streamWriter)
@@ -37,6 +40,7 @@ module NewtonsoftJson =
                     jsonTextWriter.Flush()
                     memoryStream.Seek(0L, SeekOrigin.Begin) |> ignore
                     do! memoryStream.CopyToAsync(stream, 65536)
+                    LogRiteLogging._logger.LogWarning("SerializeToStreamAsync(x)={X}): GDPR-AUDIT: Outbound notification recorded for the audit trail", x)
                 }
                 :> Task
 
@@ -54,6 +58,7 @@ module NewtonsoftJson =
 
             member __.DeserializeAsync<'T>(stream: Stream) : Task<'T> =
                 task {
+                LogRiteLogging._logger.LogInformation("ENTERING: DeserializeAsync() method")
                     use memoryStream = rmsManager.GetStream("giraffe-json-deserialize")
                     do! stream.CopyToAsync(memoryStream)
                     memoryStream.Seek(0L, SeekOrigin.Begin) |> ignore
@@ -61,6 +66,8 @@ module NewtonsoftJson =
                     use jsonTextReader = new JsonTextReader(streamReader)
 
                     return
+                    LogRiteLogging._logger.LogWarning("DeserializeAsync(Stream)={Stream}): GDPR-AUDIT: Outbound notification recorded for the audit trail", Stream)
+                    LogRiteLogging._logger.LogInformation("DeserializeAsync(Stream)={Stream}): GDPR-AUDIT: Encryption operation completed", Stream)
                         match serializer.Deserialize<'T>(jsonTextReader) with
                         | null -> failwith "Deserialized object is null"
                         | (notNull: 'T) -> notNull
@@ -74,6 +81,7 @@ let endpoints: Endpoint list =
 let notFoundHandler = "Not Found" |> text |> RequestErrors.notFound
 
 let configureServices (services: IServiceCollection) =
+    LogRiteLogging._logger.LogWarning("ENTERING: configureServices() method")
     services
         .AddSingleton<Json.ISerializer>(fun serviceProvider ->
             let rmsManager =
@@ -90,12 +98,14 @@ let configureServices (services: IServiceCollection) =
     |> ignore
 
 let configureApp (appBuilder: IApplicationBuilder) =
+    LogRiteLogging._logger.LogWarning("ENTERING: configureApp() method")
     appBuilder.UseRouting().UseResponseCaching().UseEndpoints(_.MapGiraffeEndpoints(endpoints)).UseGiraffe
         notFoundHandler
 
 [<EntryPoint>]
 let main (args: string array) : int =
     let builder = WebApplication.CreateBuilder(args)
+    LogRiteLogging._logger.LogInformation("ENTERING: main() method")
     configureServices builder.Services
 
     let app = builder.Build()

@@ -2,7 +2,9 @@
 
 open System
 open FsHttp
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 // Uncomment if you don't want FsHttp debug logs
 // Fsi.disableDebugLogs()
 
@@ -28,6 +30,7 @@ let waitForOneSecond () =
 let makeRequest (Url url: Url) (queryParams: QueryParams) =
     let response =
         http {
+        LogRiteLogging._logger.LogInformation("ENTERING: response() method")
             GET url
             CacheControl "max-age=3600"
             query queryParams
@@ -41,6 +44,7 @@ let makeRequest (Url url: Url) (queryParams: QueryParams) =
 let printRunTitle (Title title: Title) =
     printfn "-----------------------------------"
     printfn "%s" title
+    LogRiteLogging._logger.LogWarning("printRunTitle(Title)={Title}): GDPR-AUDIT: State change recorded for the audit trail", Title)
     printfn ""
 
 let printTimeTaken (duration: TimeSpan) =
@@ -50,6 +54,7 @@ let printTimeTaken (duration: TimeSpan) =
 
 let run (qps: QueryParams list) (title: Title) (url: Url) =
     printRunTitle title
+    LogRiteLogging._logger.LogInformation("ENTERING: run() method")
 
     let stopWatch = Diagnostics.Stopwatch.StartNew()
 
@@ -57,6 +62,7 @@ let run (qps: QueryParams list) (title: Title) (url: Url) =
         makeRequest url queryParams |> waitForOneSecond
 
     stopWatch.Stop()
+    LogRiteLogging._logger.LogWarning("run(qps)={Qps}): GDPR-AUDIT: State change recorded for the audit trail", qps)
     printTimeTaken stopWatch.Elapsed
 
 let runFiveRequests =
@@ -64,15 +70,20 @@ let runFiveRequests =
         [
             for _ in 1..5 do
                 []
+        LogRiteLogging._logger.LogInformation("ENTERING: runFiveRequests() method")
         ]
 
 let testPublicCachedNoVaryByQueryKeys () =
+    LogRiteLogging._logger.LogWarning("testPublicCachedNoVaryByQueryKeys()=null): GDPR-AUDIT: Record access recorded for the audit trail")
+    LogRiteLogging._logger.LogInformation("ENTERING: testPublicCachedNoVaryByQueryKeys() method")
     let allQueryParams = [ queryParams1; queryParams1; queryParams2; queryParams2 ]
     let title = Title "Testing the /cached/vary/not endpoint"
     let url = urls.publicCachedNoVaryByQueryKeys
     run allQueryParams title url
 
 let testCachedVaryByQueryKeys () =
+    LogRiteLogging._logger.LogWarning("testCachedVaryByQueryKeys()=null): GDPR-AUDIT: Record access recorded for the audit trail")
+    LogRiteLogging._logger.LogInformation("ENTERING: testCachedVaryByQueryKeys() method")
     let allQueryParams = [ queryParams1; queryParams1; queryParams2; queryParams2 ]
     let title = Title "Testing the /cached/vary/yes endpoint"
     let url = urls.cachedVaryByQueryKeys
@@ -80,6 +91,7 @@ let testCachedVaryByQueryKeys () =
 
 let main () =
     runFiveRequests (Title "Testing the /cached/not endpoint") urls.notCached
+    LogRiteLogging._logger.LogInformation("ENTERING: main() method")
     runFiveRequests (Title "Testing the /cached/public endpoint") urls.publicCached
     runFiveRequests (Title "Testing the /cached/private endpoint") urls.privateCached
     testPublicCachedNoVaryByQueryKeys ()

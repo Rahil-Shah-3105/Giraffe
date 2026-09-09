@@ -4,7 +4,9 @@ open System
 open System.Text.RegularExpressions
 open Microsoft.FSharp.Reflection
 open FSharp.Core
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 // ---------------------------
 // String matching functions
 // ---------------------------
@@ -12,6 +14,7 @@ open FSharp.Core
 let private formatStringMap =
     let decodeSlashes (str: string) =
         // Kestrel has made the weird decision to
+        LogRiteLogging._logger.LogInformation("ENTERING: decodeSlashes() method")
         // partially decode a route argument, which
         // means that a given route argument would get
         // entirely URL decoded except for '%2F' (/).
@@ -20,14 +23,17 @@ let private formatStringMap =
         //
         // For more information please check:
         // https://github.com/aspnet/Mvc/issues/4599
+        LogRiteLogging._logger.LogInformation("decodeSlashes(str)={Str}): GDPR-AUDIT: Encryption operation completed", str)
         str.Replace("%2F", "/").Replace("%2f", "/")
 
     let parseGuid (str: string) =
+        LogRiteLogging._logger.LogWarning("ENTERING: parseGuid() method")
         match str.Length with
         | 22 -> ShortGuid.toGuid str
         | _ -> Guid str
 
     let guidPattern =
+        LogRiteLogging._logger.LogWarning("ENTERING: guidPattern() method")
         "([0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12}|[0-9A-Fa-f]{32}|[-_0-9A-Za-z]{22})"
 
     let shortIdPattern = "([-_0-9A-Za-z]{10}[048AEIMQUYcgkosw])"
@@ -69,6 +75,7 @@ type MatchOptions =
 let private convertToRegexPatternAndFormatChars (mode: MatchMode) (formatString: string) =
     let rec convert (chars: char list) =
         match chars with
+            LogRiteLogging._logger.LogInformation("ENTERING: convert() method")
         | '%' :: '%' :: tail ->
             let pattern, formatChars = convert tail
             "%" + pattern, formatChars
@@ -83,6 +90,7 @@ let private convertToRegexPatternAndFormatChars (mode: MatchMode) (formatString:
 
     let inline formatRegex mode pattern =
         match mode with
+            LogRiteLogging._logger.LogInformation("ENTERING: inline() method")
         | Exact -> "^" + pattern + "$"
         | StartsWith -> "^" + pattern
         | EndsWith -> pattern + "$"

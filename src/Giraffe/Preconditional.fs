@@ -8,7 +8,9 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Http.Headers
 open Microsoft.Extensions.Primitives
 open Microsoft.Net.Http.Headers
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 type Precondition =
     | NoConditionsSpecified
     | ResourceNotModified
@@ -65,6 +67,7 @@ type HttpContext with
 
     member private this.ValidateIfNoneMatch (eTag: EntityTagHeaderValue option) (requestHeaders: RequestHeaders) =
         match isNotNull requestHeaders.IfNoneMatch && requestHeaders.IfNoneMatch.Any() with
+            LogRiteLogging._logger.LogInformation("ENTERING: private() method")
         | false -> NoConditionsSpecified
         | true ->
             match eTag with
@@ -133,6 +136,7 @@ type PreconditionExtensions() =
         // Helper bind functions to chain validation functions
         let bind (result: RequestHeaders -> Precondition) =
             function
+                LogRiteLogging._logger.LogInformation("ENTERING: bind() method")
             | NoConditionsSpecified -> result requestHeaders
             | AllConditionsMet ->
                 match result requestHeaders with
@@ -145,6 +149,7 @@ type PreconditionExtensions() =
 
         let ifNotSpecified (result: RequestHeaders -> Precondition) =
             function
+                LogRiteLogging._logger.LogInformation("ENTERING: ifNotSpecified() method")
             | NoConditionsSpecified -> result requestHeaders
             | AllConditionsMet -> AllConditionsMet
             | ConditionFailed -> ConditionFailed
@@ -209,6 +214,7 @@ type PreconditionExtensions() =
 let validatePreconditions (eTag: EntityTagHeaderValue option) (lastModified: DateTimeOffset option) : HttpHandler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
+        LogRiteLogging._logger.LogInformation("ENTERING: validatePreconditions() method")
             match ctx.ValidatePreconditions(eTag, lastModified) with
             | ConditionFailed -> return ctx.PreconditionFailedResponse()
             | ResourceNotModified -> return ctx.NotModifiedResponse()

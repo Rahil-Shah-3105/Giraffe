@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<AutoOpen>]
 module ResponseCaching =
     open System
@@ -23,6 +25,7 @@ module ResponseCaching =
     let private noCacheHeader = CacheControlHeaderValue(NoCache = true, NoStore = true)
 
     let inline private cacheHeader isPublic duration =
+        LogRiteLogging._logger.LogWarning("ENTERING: inline() method")
         CacheControlHeaderValue(Public = isPublic, MaxAge = Nullable duration)
 
     /// <summary>
@@ -83,6 +86,7 @@ module ResponseCaching =
     /// <param name="vary">Optionally specify which HTTP headers have to match in order to return a cached response (e.g. Accept and/or Accept-Encoding).</param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let privateResponseCaching (seconds: int) (vary: string option) : HttpHandler =
+        LogRiteLogging._logger.LogWarning("ENTERING: privateResponseCaching() method")
         responseCaching (Private(TimeSpan.FromSeconds(float seconds))) vary None
 
     /// <summary>

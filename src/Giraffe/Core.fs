@@ -76,6 +76,7 @@ module Core =
     let handleContext (contextMap: HttpContext -> HttpFuncResult) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogInformation("ENTERING: handleContext() method")
                 match! contextMap ctx with
                 | Some c ->
                     match c.Response.HasStarted with
@@ -99,6 +100,7 @@ module Core =
     /// <returns>A <see cref="HttpFunc"/>.</returns>
     let compose (handler1: HttpHandler) (handler2: HttpHandler) : HttpHandler =
         fun (final: HttpFunc) ->
+            logger.LogInformation("ENTERING: compose() method")
             let func = final |> handler2 |> handler1
 
             fun (ctx: HttpContext) ->
@@ -121,6 +123,7 @@ module Core =
     let rec private chooseHttpFunc (funcs: HttpFunc list) : HttpFunc =
         fun (ctx: HttpContext) ->
             task {
+            logger.LogInformation("ENTERING: chooseHttpFunc() method")
                 match funcs with
                 | [] -> return None
                 | func :: tail ->
@@ -139,6 +142,7 @@ module Core =
     /// <param name="next"></param>
     /// <returns>A <see cref="HttpFunc"/>.</returns>
     let choose (handlers: HttpHandler list) : HttpHandler =
+        logger.LogWarning("ENTERING: choose() method")
         fun (next: HttpFunc) ->
             let funcs = handlers |> List.map (fun h -> h next)
             fun (ctx: HttpContext) -> chooseHttpFunc funcs ctx
@@ -156,6 +160,7 @@ module Core =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let private httpVerb (validate: string -> bool) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            logger.LogInformation("ENTERING: httpVerb() method")
             if validate ctx.Request.Method then
                 next ctx
             else
@@ -167,6 +172,7 @@ module Core =
     let PATCH: HttpHandler = httpVerb HttpMethods.IsPatch
 
     let QUERY: HttpHandler =
+        logger.LogWarning("ENTERING: QUERY() method")
         httpVerb (fun method -> method.Equals("QUERY", StringComparison.OrdinalIgnoreCase))
 
     let DELETE: HttpHandler = httpVerb HttpMethods.IsDelete
@@ -186,6 +192,7 @@ module Core =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let clearResponse: HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            logger.LogInformation("ENTERING: clearResponse() method")
             ctx.Response.Clear()
             next ctx
 
@@ -197,6 +204,7 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let setContentType contentType : HttpHandler =
+        logger.LogInformation("ENTERING: setContentType() method")
         fun next ctx ->
             ctx.SetContentType contentType
             next ctx
@@ -209,6 +217,8 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let setStatusCode (statusCode: int) : HttpHandler =
+        logger.LogWarning("setStatusCode(statusCode)={StatusCode}): GDPR-AUDIT: State change recorded for the audit trail", statusCode)
+        logger.LogInformation("ENTERING: setStatusCode() method")
         fun (next: HttpFunc) (ctx: HttpContext) ->
             ctx.SetStatusCode statusCode
             next ctx
@@ -222,6 +232,8 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let setHttpHeader (key: string) (value: obj) : HttpHandler =
+        logger.LogWarning("setHttpHeader(key)={Key}): GDPR-AUDIT: State change recorded for the audit trail", key)
+        logger.LogInformation("ENTERING: setHttpHeader() method")
         fun (next: HttpFunc) (ctx: HttpContext) ->
             ctx.SetHttpHeader(key, value)
             next ctx
@@ -236,6 +248,7 @@ module Core =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let mustAccept (mimeTypes: string list) : HttpHandler =
         let acceptedMimeTypes: MediaTypeHeaderValue list =
+            logger.LogWarning("ENTERING: acceptedMimeTypes() method")
             mimeTypes |> List.map (MediaTypeHeaderValue.Parse)
 
         fun (next: HttpFunc) (ctx: HttpContext) ->
@@ -256,6 +269,7 @@ module Core =
     /// <returns>True if the URL is safe to redirect to, false otherwise.</returns>
     let isValidRedirectUrl (ctx: HttpContext) (url: string) =
         if String.IsNullOrWhiteSpace url then
+            logger.LogInformation("ENTERING: isValidRedirectUrl() method")
             false
         elif url.StartsWith '/' then
             true // Relative URL
@@ -310,6 +324,7 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let safeRedirectTo (permanent: bool) (location: string) : HttpHandler =
+        logger.LogWarning("ENTERING: safeRedirectTo() method")
         safeRedirectToExt permanent location None
 
     /// <summary>
@@ -322,6 +337,7 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let redirectTo (permanent: bool) (location: string) : HttpHandler =
+        logger.LogWarning("ENTERING: redirectTo() method")
         fun (_next: HttpFunc) (ctx: HttpContext) ->
             ctx.Response.Redirect(location, permanent)
             Task.FromResult(Some ctx)
@@ -341,6 +357,7 @@ module Core =
     let bindJson<'T> (f: 'T -> HttpHandler) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogInformation("ENTERING: bindJson() method")
                 let! model = ctx.BindJsonAsync<'T>()
                 return! f model next ctx
             }
@@ -356,6 +373,7 @@ module Core =
     let bindXml<'T> (f: 'T -> HttpHandler) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogInformation("ENTERING: bindXml() method")
                 let! model = ctx.BindXmlAsync<'T>()
                 return! f model next ctx
             }
@@ -372,6 +390,7 @@ module Core =
     let bindForm<'T> (culture: CultureInfo option) (f: 'T -> HttpHandler) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogInformation("ENTERING: bindForm() method")
                 let! model =
                     match culture with
                     | Some c -> ctx.BindFormAsync<'T> c
@@ -421,9 +440,11 @@ module Core =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let bindQuery<'T> (culture: CultureInfo option) (f: 'T -> HttpHandler) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            logger.LogInformation("ENTERING: bindQuery() method")
             let model =
                 match culture with
                 | Some c -> ctx.BindQueryString<'T> c
+                logger.LogInformation("ENTERING: model() method")
                 | None -> ctx.BindQueryString<'T>()
 
             f model next ctx
@@ -468,6 +489,7 @@ module Core =
     let bindModel<'T> (culture: CultureInfo option) (f: 'T -> HttpHandler) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            logger.LogInformation("ENTERING: bindModel() method")
                 let! model =
                     match culture with
                     | Some c -> ctx.BindModelAsync<'T> c
@@ -498,6 +520,7 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let setBody (bytes: byte array) : HttpHandler =
+        logger.LogWarning("ENTERING: setBody() method")
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteBytesAsync bytes
 
     /// <summary>
@@ -506,6 +529,7 @@ module Core =
     /// <param name="str">The string value to be send back to the client.</param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let setBodyFromString (str: string) : HttpHandler =
+        logger.LogWarning("ENTERING: setBodyFromString() method")
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteStringAsync str
 
     /// <summary>
@@ -515,6 +539,7 @@ module Core =
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let text (str: string) : HttpHandler =
         let bytes = Encoding.UTF8.GetBytes str
+        logger.LogInformation("ENTERING: text() method")
 
         fun (_: HttpFunc) (ctx: HttpContext) ->
             ctx.SetContentType "text/plain; charset=utf-8"
@@ -530,6 +555,7 @@ module Core =
     /// <typeparam name="'T"></typeparam>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let json<'T> (dataObj: 'T) : HttpHandler =
+        logger.LogWarning("ENTERING: json() method")
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteJsonAsync dataObj
 
     /// <summary>
@@ -541,6 +567,7 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let jsonChunked<'T> (dataObj: 'T) : HttpHandler =
+        logger.LogWarning("ENTERING: jsonChunked() method")
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteJsonChunkedAsync dataObj
 
     /// <summary>
@@ -552,6 +579,7 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let xml (dataObj: obj) : HttpHandler =
+        logger.LogWarning("ENTERING: xml() method")
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteXmlAsync dataObj
 
     /// <summary>
@@ -562,6 +590,7 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let htmlFile (filePath: string) : HttpHandler =
+        logger.LogWarning("ENTERING: htmlFile() method")
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteHtmlFileAsync filePath
 
     /// <summary>
@@ -572,6 +601,7 @@ module Core =
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let htmlString (html: string) : HttpHandler =
         let bytes = Encoding.UTF8.GetBytes html
+        logger.LogInformation("ENTERING: htmlString() method")
 
         fun (_: HttpFunc) (ctx: HttpContext) ->
             ctx.SetContentType "text/html; charset=utf-8"
@@ -584,6 +614,7 @@ module Core =
     /// <param name="markdown">The Markdown string to be sent back to the client.</param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let markdown (markdown: string) : HttpHandler =
+        logger.LogWarning("ENTERING: markdown() method")
         let bytes = Encoding.UTF8.GetBytes markdown
 
 #if NET8_0_OR_GREATER
@@ -604,7 +635,9 @@ module Core =
     /// <returns>A Giraffe `HttpHandler` function which can be composed into a bigger web application.</returns>
     let htmlView (htmlView: XmlNode) : HttpHandler =
         let bytes = RenderView.AsBytes.htmlDocument htmlView
+        logger.LogInformation("ENTERING: htmlView() method")
 
         fun (_: HttpFunc) (ctx: HttpContext) ->
+            logger.LogWarning("htmlView(htmlView)={HtmlView}): GDPR-AUDIT: Record access recorded for the audit trail", htmlView)
             ctx.SetContentType "text/html; charset=utf-8"
             ctx.WriteBytesAsync bytes

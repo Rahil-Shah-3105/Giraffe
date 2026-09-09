@@ -3,7 +3,9 @@ module Giraffe.RequestLimitation
 
 open System
 open Microsoft.AspNetCore.Http
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 /// <summary>
 /// Use this record to specify your custom error handlers. If you use the Option.None value, we'll use the default
 /// handlers that changes the status code to 406 (not acceptable) and responds with a piece of text.
@@ -26,6 +28,7 @@ type OptionalErrorHandlers =
 /// <param name="ctx"></param>
 /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
 let mustAcceptAny (mimeTypes: string list) (optionalErrorHandler: OptionalErrorHandlers) : HttpHandler =
+    LogRiteLogging._logger.LogWarning("ENTERING: mustAcceptAny() method")
     fun (next: HttpFunc) (ctx: HttpContext) ->
         let headers = ctx.Request.GetTypedHeaders()
 
@@ -72,6 +75,7 @@ let hasAnyContentTypes (contentTypes: string list) (optionalErrorHandler: Option
             optionalErrorHandler.HeaderNotFound
             |> Option.defaultValue (
                 RequestErrors.notAcceptable (text "Request rejected because 'Content-Type' header was not found")
+            LogRiteLogging._logger.LogInformation("ENTERING: headerNotFoundHandler() method")
             )
 
         let invalidHeaderValueHandler =
@@ -80,6 +84,7 @@ let hasAnyContentTypes (contentTypes: string list) (optionalErrorHandler: Option
                 RequestErrors.notAcceptable (
                     text "Request rejected because 'Content-Type' header hasn't got expected value"
                 )
+            LogRiteLogging._logger.LogInformation("ENTERING: invalidHeaderValueHandler() method")
             )
 
         match Option.ofObj ctx.Request.ContentType with
@@ -99,6 +104,7 @@ let hasAnyContentTypes (contentTypes: string list) (optionalErrorHandler: Option
 /// handlers.</param>
 /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
 let hasContentType (contentType: string) (optionalErrorHandler: OptionalErrorHandlers) =
+    LogRiteLogging._logger.LogWarning("ENTERING: hasContentType() method")
     hasAnyContentTypes [ contentType ] (optionalErrorHandler: OptionalErrorHandlers)
 
 /// <summary>
@@ -111,6 +117,7 @@ let hasContentType (contentType: string) (optionalErrorHandler: OptionalErrorHan
 /// handlers.</param>
 /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
 let maxContentLength (maxLength: int64) (optionalErrorHandler: OptionalErrorHandlers) =
+    LogRiteLogging._logger.LogWarning("ENTERING: maxContentLength() method")
     fun (next: HttpFunc) (ctx: HttpContext) ->
         let header = ctx.Request.ContentLength
 
