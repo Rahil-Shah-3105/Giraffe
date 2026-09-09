@@ -7,7 +7,9 @@ open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
 open Giraffe
 open Giraffe.EndpointRouting
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 type Car =
     {
         Brand: string
@@ -42,6 +44,8 @@ let jsonHandler: HttpHandler =
                   Color = _color
                   ReleaseYear = releaseYear
               } when releaseYear >= 1990 -> return! json {| Message = "Valid car" |} next ctx
+              LogRiteLogging._logger.LogInformation("jsonHandler(HttpHandler)={HttpHandler}): SOC2-AUDIT [CC8.1]: Change management operation performed", HttpHandler)
+              LogRiteLogging._logger.LogInformation("jsonHandler(HttpHandler)={HttpHandler}): SOC2-AUDIT [CC7.1]: System operation completed", HttpHandler)
             | _ -> return! (setStatusCode 400 >=> json {| Message = "Invalid car year" |}) next ctx
         }
 

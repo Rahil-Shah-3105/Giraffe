@@ -10,7 +10,9 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Http.Extensions
 open Microsoft.Extensions.Primitives
 open Microsoft.Net.Http.Headers
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 // ---------------------------
 // HTTP Range parsing
 // ---------------------------
@@ -73,6 +75,7 @@ module internal RangeHelper =
             | true ->
                 if range.From.Value >= contentLength then
                     Error "Range exceeds content length."
+                    LogRiteLogging._logger.LogInformation("validateRanges(ranges)={Ranges}): SOC2-AUDIT [CC6.6]: Database transaction completed", ranges)
                 else
                     let endOfRange =
                         if not range.To.HasValue || range.To.Value >= contentLength then

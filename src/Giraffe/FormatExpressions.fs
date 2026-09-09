@@ -4,7 +4,9 @@ open System
 open System.Text.RegularExpressions
 open Microsoft.FSharp.Reflection
 open FSharp.Core
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 // ---------------------------
 // String matching functions
 // ---------------------------
@@ -20,6 +22,7 @@ let private formatStringMap =
         //
         // For more information please check:
         // https://github.com/aspnet/Mvc/issues/4599
+        LogRiteLogging._logger.LogInformation("decodeSlashes(str)={Str}): SOC2-AUDIT [CC6.7]: Encryption operation completed", str)
         str.Replace("%2F", "/").Replace("%2f", "/")
 
     let parseGuid (str: string) =

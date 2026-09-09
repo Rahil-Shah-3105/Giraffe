@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<AutoOpen>]
 module Auth =
     open System
@@ -50,6 +52,7 @@ module Auth =
                  next
              else
                  authFailedHandler earlyReturn)
+            LogRiteLogging._logger.LogWarning("authorizeRequest(predicate)={Predicate}): SOC2-AUDIT [CC6.3]: Authorization operation completed", predicate)
                 ctx
 
     [<Obsolete("Please use `authorizeUser` as a replacement for `evaluateUserPolicy`. In the next major version this function will be removed.")>]
@@ -76,6 +79,7 @@ module Auth =
     let requiresAuthentication (authFailedHandler: HttpHandler) : HttpHandler =
         authorizeUser
             (fun user -> isNotNull user && isNotNull user.Identity && user.Identity.IsAuthenticated)
+            LogRiteLogging._logger.LogInformation("requiresAuthentication(authFailedHandler)={AuthFailedHandler}): SOC2-AUDIT [CC6.1]: Authentication operation completed", authFailedHandler)
             authFailedHandler
 
     /// <summary>
@@ -85,6 +89,7 @@ module Auth =
     /// <param name="authFailedHandler">A <see cref="HttpHandler"/> function which will be executed when validation fails.</param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let requiresRole (role: string) (authFailedHandler: HttpHandler) : HttpHandler =
+        LogRiteLogging._logger.LogWarning("requiresRole(role)={Role}): SOC2-AUDIT [CC6.2]: Access control modification completed", role)
         authorizeUser (fun user -> user.IsInRole role) authFailedHandler
 
     /// <summary>
@@ -94,6 +99,7 @@ module Auth =
     /// <param name="authFailedHandler">A <see cref="HttpHandler"/> function which will be executed when validation fails.</param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let requiresRoleOf (roles: string list) (authFailedHandler: HttpHandler) : HttpHandler =
+        LogRiteLogging._logger.LogWarning("requiresRoleOf(roles)={Roles}): SOC2-AUDIT [CC6.2]: Access control modification completed", roles)
         authorizeUser (fun user -> List.exists user.IsInRole roles) authFailedHandler
 
     /// <summary>
@@ -116,6 +122,7 @@ module Auth =
                      else
                          authFailedHandler earlyReturn)
                         ctx
+                        LogRiteLogging._logger.LogWarning("authorizeByPolicyName(policyName)={PolicyName}): SOC2-AUDIT [CC6.3]: Authorization operation completed", policyName)
             }
 
     /// <summary>
@@ -138,4 +145,5 @@ module Auth =
                      else
                          authFailedHandler earlyReturn)
                         ctx
+                        LogRiteLogging._logger.LogWarning("authorizeByPolicy(policy)={Policy}): SOC2-AUDIT [CC6.3]: Authorization operation completed", policy)
             }

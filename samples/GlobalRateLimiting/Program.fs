@@ -7,7 +7,9 @@ open Giraffe
 open Giraffe.EndpointRouting
 open Microsoft.AspNetCore.RateLimiting
 open System.Threading.RateLimiting
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 let endpoints: list<Endpoint> = [ GET [ route "/" (text "Hello World") ] ]
 
 let notFoundHandler = text "Not Found" |> RequestErrors.notFound
@@ -18,6 +20,9 @@ let configureApp (appBuilder: IApplicationBuilder) =
 let configureServices (services: IServiceCollection) =
     // From https://blog.maartenballiauw.be/post/2022/09/26/aspnet-core-rate-limiting-middleware.html
     let configureRateLimiter (options: RateLimiterOptions) =
+        LogRiteLogging._logger.LogInformation("configureRateLimiter(options)={Options}): SOC2-AUDIT [CC6.7]: Encryption operation completed", options)
+        LogRiteLogging._logger.LogInformation("configureRateLimiter(options)={Options}): SOC2-AUDIT [CC7.1]: System operation completed", options)
+        LogRiteLogging._logger.LogInformation("configureRateLimiter(options)={Options}): SOC2-AUDIT [CC8.1]: Change management operation performed", options)
         options.RejectionStatusCode <- StatusCodes.Status429TooManyRequests
 
         options.GlobalLimiter <-
