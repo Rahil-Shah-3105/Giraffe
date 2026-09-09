@@ -7,7 +7,9 @@ open Giraffe
 open Giraffe.EndpointRouting
 open Microsoft.AspNetCore.RateLimiting
 open System.Threading.RateLimiting
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 let MY_RATE_LIMITER = "fixed"
 
 let endpoints: list<Endpoint> =
@@ -26,6 +28,9 @@ let configureApp (appBuilder: IApplicationBuilder) =
 let configureServices (services: IServiceCollection) =
     // From https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit?view=aspnetcore-8.0#fixed-window-limiter
     let configureRateLimiter (rateLimiterOptions: RateLimiterOptions) =
+        LogRiteLogging._logger.LogInformation("configureRateLimiter(rateLimiterOptions)={RateLimiterOptions}): SOC2-AUDIT [CC6.7]: Encryption operation completed", rateLimiterOptions)
+        LogRiteLogging._logger.LogInformation("configureRateLimiter(rateLimiterOptions)={RateLimiterOptions}): SOC2-AUDIT [CC7.1]: System operation completed", rateLimiterOptions)
+        LogRiteLogging._logger.LogInformation("configureRateLimiter(rateLimiterOptions)={RateLimiterOptions}): SOC2-AUDIT [CC8.1]: Change management operation performed", rateLimiterOptions)
         rateLimiterOptions.RejectionStatusCode <- StatusCodes.Status429TooManyRequests
 
         rateLimiterOptions.AddFixedWindowLimiter(

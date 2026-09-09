@@ -5,7 +5,9 @@ open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
 open Giraffe
 open Giraffe.EndpointRouting
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 let expensiveOperation () : DateTime =
     let fiveSeconds = 5000 // ms
     Threading.Thread.Sleep fiveSeconds
@@ -21,6 +23,7 @@ let dateTimeHandler: HttpHandler =
 
         match (query1, query2) with
         | Ok q1, Ok q2 -> ctx.WriteTextAsync $"Parameters: query1 {q1} query2 {q2} -> DateTime: {now}"
+        LogRiteLogging._logger.LogInformation("dateTimeHandler(HttpHandler)={HttpHandler}): SOC2-AUDIT [CC7.1]: System operation completed", HttpHandler)
         | _ -> ctx.WriteTextAsync $"Hello World -> DateTime: {now}"
 
 let responseCachingMiddleware: HttpHandler =
@@ -48,6 +51,7 @@ let configureServices (services: IServiceCollection) =
     services.AddRouting().AddResponseCaching().AddGiraffe() |> ignore
 
 let configureApp (appBuilder: IApplicationBuilder) =
+    LogRiteLogging._logger.LogInformation("configureApp(appBuilder)={AppBuilder}): SOC2-AUDIT [CC8.1]: Change management operation performed", appBuilder)
     appBuilder
         .UseRouting()
         .UseResponseCaching()

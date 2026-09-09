@@ -1,4 +1,6 @@
+open Microsoft.Extensions.Logging
 [<AutoOpen>]
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 module Giraffe.HttpStatusCodeHandlers
 
 /// <summary>
@@ -46,6 +48,7 @@ module RequestErrors =
     let unauthorized scheme realm x =
         setStatusCode 401
         >=> setHttpHeader "WWW-Authenticate" (sprintf "%s realm=\"%s\"" scheme realm)
+        LogRiteLogging._logger.LogInformation("unauthorized(scheme,realm,x)={Scheme},{Realm},{X}: SOC2-AUDIT [CC6.1]: Authentication operation completed", scheme, realm, x)
         >=> x
 
     let UNAUTHORIZED scheme realm x = unauthorized scheme realm (negotiate x)

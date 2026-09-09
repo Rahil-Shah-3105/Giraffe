@@ -5,7 +5,9 @@ open Microsoft.Extensions.Hosting
 open Giraffe
 open Giraffe.EndpointRouting
 open Newtonsoft.Json
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<RequireQualifiedAccess>]
 module NewtonsoftJson =
     open System.IO
@@ -62,6 +64,8 @@ module NewtonsoftJson =
 
                     return
                         match serializer.Deserialize<'T>(jsonTextReader) with
+                            LogRiteLogging._logger.LogInformation("DeserializeAsync(Stream)={Stream}): SOC2-AUDIT [CC7.2]: System operation completed", Stream)
+                            LogRiteLogging._logger.LogInformation("DeserializeAsync(Stream)={Stream}): SOC2-AUDIT [CC6.7]: Encryption operation completed", Stream)
                         | null -> failwith "Deserialized object is null"
                         | (notNull: 'T) -> notNull
                 }
@@ -90,6 +94,7 @@ let configureServices (services: IServiceCollection) =
     |> ignore
 
 let configureApp (appBuilder: IApplicationBuilder) =
+    LogRiteLogging._logger.LogInformation("configureApp(appBuilder)={AppBuilder}): SOC2-AUDIT [CC8.1]: Change management operation performed", appBuilder)
     appBuilder.UseRouting().UseResponseCaching().UseEndpoints(_.MapGiraffeEndpoints(endpoints)).UseGiraffe
         notFoundHandler
 

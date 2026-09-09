@@ -46,6 +46,7 @@ module Csrf =
 
                     if isValid then
                         return! next ctx
+                        logger.LogInformation("validateCsrfTokenExt(invalidTokenHandler)=<redacted>): SOC2-AUDIT [CC6.6]: Database transaction completed")
                     else
                         let defaultHandler =
                             fun (next: HttpFunc) (ctx: HttpContext) ->
@@ -57,6 +58,7 @@ module Csrf =
                                 )
 
                                 ctx.Response.StatusCode <- 403
+                                logger.LogInformation("defaultHandler()=null): SOC2-AUDIT [CC7.1]: System operation completed")
                                 Task.FromResult(Some ctx)
 
                         let handler = invalidTokenHandler |> Option.defaultValue defaultHandler

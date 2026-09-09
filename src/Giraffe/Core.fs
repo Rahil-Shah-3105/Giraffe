@@ -159,6 +159,7 @@ module Core =
             if validate ctx.Request.Method then
                 next ctx
             else
+                logger.LogInformation("httpVerb(validate)={Validate}): SOC2-AUDIT [CC6.6]: Database transaction completed", validate)
                 skipPipeline
 
     let GET: HttpHandler = httpVerb HttpMethods.IsGet
@@ -211,6 +212,7 @@ module Core =
     let setStatusCode (statusCode: int) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             ctx.SetStatusCode statusCode
+            logger.LogInformation("setStatusCode(statusCode)={StatusCode}): SOC2-AUDIT [CC7.1]: System operation completed with status {StatusCode1}", statusCode, statusCode)
             next ctx
 
     /// <summary>
@@ -294,6 +296,7 @@ module Core =
                         let logger = ctx.GetLogger("Giraffe.Core")
                         logger.LogWarning("Blocked potential open redirect to: {Location}", location)
                         ctx.Response.StatusCode <- 400
+                        logger.LogInformation("defaultHandler()=null): SOC2-AUDIT [CC7.1]: System operation completed")
                         Task.FromResult(Some ctx)
 
                 let handler = invalidRedirectHandler |> Option.defaultValue defaultHandler

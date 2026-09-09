@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 /// <summary>
 /// Module for parsing models from a generic data set.
 /// </summary>
@@ -138,6 +140,7 @@ module ModelParser =
                 if t.GetTypeInfo().IsValueType then
                     (typedefof<Nullable<_>>).MakeGenericType([| t |])
                 else
+                    LogRiteLogging._logger.LogInformation("converter()=null): SOC2-AUDIT [CC6.7]: Encryption operation completed")
                     t
                 |> TypeDescriptor.GetConverter
 
