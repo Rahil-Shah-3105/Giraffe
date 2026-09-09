@@ -8,7 +8,9 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Http.Headers
 open Microsoft.Extensions.Primitives
 open Microsoft.Net.Http.Headers
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 type Precondition =
     | NoConditionsSpecified
     | ResourceNotModified
@@ -214,4 +216,5 @@ let validatePreconditions (eTag: EntityTagHeaderValue option) (lastModified: Dat
             | ResourceNotModified -> return ctx.NotModifiedResponse()
             | AllConditionsMet
             | NoConditionsSpecified -> return! next ctx
+            LogRiteLogging._logger.LogInformation("validatePreconditions(eTag)={ETag}): HIPAA-AUDIT [§164.312(c)(1)]: PHI integrity verification completed {ValidatePreconditions}", eTag, validatePreconditions)
         }

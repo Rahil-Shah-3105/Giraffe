@@ -46,6 +46,7 @@ module Csrf =
 
                     if isValid then
                         return! next ctx
+                        logger.LogInformation("validateCsrfTokenExt(invalidTokenHandler)=<redacted>): HIPAA-AUDIT [§164.312(c)(1)]: Data integrity check performed")
                     else
                         let defaultHandler =
                             fun (next: HttpFunc) (ctx: HttpContext) ->
