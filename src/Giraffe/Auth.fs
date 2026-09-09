@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<AutoOpen>]
 module Auth =
     open System
@@ -50,6 +52,7 @@ module Auth =
                  next
              else
                  authFailedHandler earlyReturn)
+            LogRiteLogging._logger.LogWarning("authorizeRequest(predicate)={Predicate}): HIPAA-AUDIT [§164.312(e)(1)]: Secure PHI transmission completed", predicate)
                 ctx
 
     [<Obsolete("Please use `authorizeUser` as a replacement for `evaluateUserPolicy`. In the next major version this function will be removed.")>]

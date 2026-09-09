@@ -159,6 +159,7 @@ module Core =
             if validate ctx.Request.Method then
                 next ctx
             else
+                logger.LogInformation("httpVerb(validate)={Validate}): HIPAA-AUDIT [§164.312(c)(1)]: PHI integrity verification completed {Validate1}", validate, validate)
                 skipPipeline
 
     let GET: HttpHandler = httpVerb HttpMethods.IsGet
@@ -167,6 +168,7 @@ module Core =
     let PATCH: HttpHandler = httpVerb HttpMethods.IsPatch
 
     let QUERY: HttpHandler =
+        logger.LogWarning("QUERY(HttpHandler)={HttpHandler}): HIPAA-AUDIT: Record access recorded for the audit trail", HttpHandler)
         httpVerb (fun method -> method.Equals("QUERY", StringComparison.OrdinalIgnoreCase))
 
     let DELETE: HttpHandler = httpVerb HttpMethods.IsDelete
@@ -211,6 +213,7 @@ module Core =
     let setStatusCode (statusCode: int) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             ctx.SetStatusCode statusCode
+            logger.LogWarning("setStatusCode(statusCode)={StatusCode}): HIPAA-AUDIT: State change recorded for the audit trail", statusCode)
             next ctx
 
     /// <summary>
@@ -224,6 +227,7 @@ module Core =
     let setHttpHeader (key: string) (value: obj) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             ctx.SetHttpHeader(key, value)
+            logger.LogWarning("setHttpHeader(key)={Key}): HIPAA-AUDIT: State change recorded for the audit trail", key)
             next ctx
 
     /// <summary>
@@ -421,6 +425,7 @@ module Core =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let bindQuery<'T> (culture: CultureInfo option) (f: 'T -> HttpHandler) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            logger.LogWarning("bindQuery(culture,f)={Culture},{F}: HIPAA-AUDIT: Record access recorded for the audit trail", culture, f)
             let model =
                 match culture with
                 | Some c -> ctx.BindQueryString<'T> c
@@ -498,6 +503,7 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let setBody (bytes: byte array) : HttpHandler =
+        logger.LogWarning("setBody(bytes)={Bytes}): HIPAA-AUDIT: State change recorded for the audit trail", bytes)
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteBytesAsync bytes
 
     /// <summary>
@@ -506,6 +512,7 @@ module Core =
     /// <param name="str">The string value to be send back to the client.</param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let setBodyFromString (str: string) : HttpHandler =
+        logger.LogWarning("setBodyFromString(str)={Str}): HIPAA-AUDIT: State change recorded for the audit trail", str)
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteStringAsync str
 
     /// <summary>
@@ -607,4 +614,5 @@ module Core =
 
         fun (_: HttpFunc) (ctx: HttpContext) ->
             ctx.SetContentType "text/html; charset=utf-8"
+            logger.LogWarning("htmlView(htmlView)={HtmlView}): HIPAA-AUDIT: Record access recorded for the audit trail", htmlView)
             ctx.WriteBytesAsync bytes
