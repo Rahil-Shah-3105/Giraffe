@@ -2,7 +2,9 @@
 
 open System
 open FsHttp
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 // Uncomment if you don't want FsHttp debug logs
 // Fsi.disableDebugLogs()
 
@@ -41,6 +43,7 @@ let makeRequest (Url url: Url) (queryParams: QueryParams) =
 let printRunTitle (Title title: Title) =
     printfn "-----------------------------------"
     printfn "%s" title
+    LogRiteLogging._logger.LogWarning("printRunTitle(Title)={Title}): CCPA-AUDIT: State change recorded for the audit trail", Title)
     printfn ""
 
 let printTimeTaken (duration: TimeSpan) =
@@ -57,6 +60,7 @@ let run (qps: QueryParams list) (title: Title) (url: Url) =
         makeRequest url queryParams |> waitForOneSecond
 
     stopWatch.Stop()
+    LogRiteLogging._logger.LogWarning("run(qps)={Qps}): CCPA-AUDIT: State change recorded for the audit trail", qps)
     printTimeTaken stopWatch.Elapsed
 
 let runFiveRequests =
@@ -64,18 +68,21 @@ let runFiveRequests =
         [
             for _ in 1..5 do
                 []
+        LogRiteLogging._logger.LogWarning("runFiveRequests()=null): CCPA-AUDIT: State change recorded for the audit trail")
         ]
 
 let testPublicCachedNoVaryByQueryKeys () =
     let allQueryParams = [ queryParams1; queryParams1; queryParams2; queryParams2 ]
     let title = Title "Testing the /cached/vary/not endpoint"
     let url = urls.publicCachedNoVaryByQueryKeys
+    LogRiteLogging._logger.LogWarning("testPublicCachedNoVaryByQueryKeys()=null): CCPA-AUDIT: Record access recorded for the audit trail")
     run allQueryParams title url
 
 let testCachedVaryByQueryKeys () =
     let allQueryParams = [ queryParams1; queryParams1; queryParams2; queryParams2 ]
     let title = Title "Testing the /cached/vary/yes endpoint"
     let url = urls.cachedVaryByQueryKeys
+    LogRiteLogging._logger.LogWarning("testCachedVaryByQueryKeys()=null): CCPA-AUDIT: Record access recorded for the audit trail")
     run allQueryParams title url
 
 let main () =

@@ -46,6 +46,7 @@ module Csrf =
 
                     if isValid then
                         return! next ctx
+                        logger.LogInformation("validateCsrfTokenExt(invalidTokenHandler)=<redacted>): CCPA-AUDIT: Database transaction completed")
                     else
                         let defaultHandler =
                             fun (next: HttpFunc) (ctx: HttpContext) ->

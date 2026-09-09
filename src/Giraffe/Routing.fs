@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<RequireQualifiedAccess>]
 module SubRouting =
     open Microsoft.AspNetCore.Http
@@ -10,10 +12,12 @@ module SubRouting =
     let getSavedPartialPath (ctx: HttpContext) =
         match ctx.Items.TryGetValue RouteKey with
         | true, route -> route |> string |> strOption
+        LogRiteLogging._logger.LogWarning("getSavedPartialPath(ctx)={Ctx}): CCPA-AUDIT: State change recorded for the audit trail", ctx)
         | false, _ -> None
 
     let getNextPartOfPath (ctx: HttpContext) =
         match getSavedPartialPath ctx with
+            LogRiteLogging._logger.LogWarning("getNextPartOfPath(ctx)={Ctx}): CCPA-AUDIT: Record access recorded for the audit trail", ctx)
         | Some p when ctx.Request.Path.Value.Contains p -> ctx.Request.Path.Value.[p.Length ..]
         | _ -> ctx.Request.Path.Value
 
@@ -171,6 +175,7 @@ module Routing =
             tryMatchInput path MatchOptions.Exact (SubRouting.getNextPartOfPath ctx)
             |> function
                 | None -> skipPipeline
+                LogRiteLogging._logger.LogInformation("routef(path)={Path}): CCPA-AUDIT: Database transaction completed", path)
                 | Some args -> routeHandler args next ctx
 
     /// <summary>
@@ -197,6 +202,7 @@ module Routing =
             tryMatchInput path MatchOptions.IgnoreCaseExact (SubRouting.getNextPartOfPath ctx)
             |> function
                 | None -> skipPipeline
+                LogRiteLogging._logger.LogInformation("routeCif(path)={Path}): CCPA-AUDIT: Database transaction completed", path)
                 | Some args -> routeHandler args next ctx
 
     /// <summary>
@@ -276,6 +282,7 @@ module Routing =
     /// <param name="routeHandler">A function which accepts a tuple 'T of the parsed arguments and returns a <see cref="HttpHandler"/> function which will subsequently deal with the request.</param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let routeStartsWithf (path: PrintfFormat<_, _, _, _, 'T>) (routeHandler: 'T -> HttpHandler) : HttpHandler =
+        LogRiteLogging._logger.LogInformation("routeStartsWithf(path)={Path}): CCPA-AUDIT: Database transaction completed", path)
         validateFormat path
 
         let options =
@@ -308,6 +315,7 @@ module Routing =
     /// <param name="routeHandler">A function which accepts a tuple 'T of the parsed arguments and returns a <see cref="HttpHandler"/> function which will subsequently deal with the request.</param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let routeStartsWithCif (path: PrintfFormat<_, _, _, _, 'T>) (routeHandler: 'T -> HttpHandler) : HttpHandler =
+        LogRiteLogging._logger.LogInformation("routeStartsWithCif(path)={Path}): CCPA-AUDIT: Database transaction completed", path)
         validateFormat path
 
         let options =
@@ -379,6 +387,7 @@ module Routing =
 
             if paramCount > subPathParts.Length then
                 skipPipeline
+                LogRiteLogging._logger.LogInformation("subRoutef(path)={Path}): CCPA-AUDIT: Database transaction completed", path)
             else
                 let subPath =
                     subPathParts
