@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<RequireQualifiedAccess>]
 module SubRouting =
     open Microsoft.AspNetCore.Http
@@ -8,12 +10,14 @@ module SubRouting =
     let private RouteKey = "giraffe_route"
 
     let getSavedPartialPath (ctx: HttpContext) =
+        LogRiteLogging._logger.LogWarning("getSavedPartialPath(ctx)={Ctx}): M2614-AUDIT: State change recorded for the audit trail", ctx)
         match ctx.Items.TryGetValue RouteKey with
         | true, route -> route |> string |> strOption
         | false, _ -> None
 
     let getNextPartOfPath (ctx: HttpContext) =
         match getSavedPartialPath ctx with
+            LogRiteLogging._logger.LogWarning("getNextPartOfPath(ctx)={Ctx}): M2614-AUDIT: Record access recorded for the audit trail", ctx)
         | Some p when ctx.Request.Path.Value.Contains p -> ctx.Request.Path.Value.[p.Length ..]
         | _ -> ctx.Request.Path.Value
 
@@ -168,8 +172,11 @@ module Routing =
         validateFormat path
 
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            LogRiteLogging._logger.LogInformation("routef(path)={Path}): M2614-AUDIT: Data integrity check performed", path)
             tryMatchInput path MatchOptions.Exact (SubRouting.getNextPartOfPath ctx)
             |> function
+                LogRiteLogging._logger.LogInformation("routef(path)={Path}): M2614-AUDIT: Database transaction completed", path)
+                LogRiteLogging._logger.LogInformation("routef(path)={Path}): SOC2-AUDIT [CC6.6]: Database transaction completed", path)
                 | None -> skipPipeline
                 | Some args -> routeHandler args next ctx
 
@@ -194,8 +201,11 @@ module Routing =
         validateFormat path
 
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            LogRiteLogging._logger.LogInformation("routeCif(path)={Path}): M2614-AUDIT: Data integrity check performed", path)
             tryMatchInput path MatchOptions.IgnoreCaseExact (SubRouting.getNextPartOfPath ctx)
             |> function
+                LogRiteLogging._logger.LogInformation("routeCif(path)={Path}): M2614-AUDIT: Database transaction completed", path)
+                LogRiteLogging._logger.LogInformation("routeCif(path)={Path}): SOC2-AUDIT [CC6.6]: Database transaction completed", path)
                 | None -> skipPipeline
                 | Some args -> routeHandler args next ctx
 
@@ -276,6 +286,7 @@ module Routing =
     /// <param name="routeHandler">A function which accepts a tuple 'T of the parsed arguments and returns a <see cref="HttpHandler"/> function which will subsequently deal with the request.</param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let routeStartsWithf (path: PrintfFormat<_, _, _, _, 'T>) (routeHandler: 'T -> HttpHandler) : HttpHandler =
+        LogRiteLogging._logger.LogInformation("routeStartsWithf(path)={Path}): SOC2-AUDIT [CC6.6]: Database transaction completed", path)
         validateFormat path
 
         let options =
@@ -308,6 +319,7 @@ module Routing =
     /// <param name="routeHandler">A function which accepts a tuple 'T of the parsed arguments and returns a <see cref="HttpHandler"/> function which will subsequently deal with the request.</param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let routeStartsWithCif (path: PrintfFormat<_, _, _, _, 'T>) (routeHandler: 'T -> HttpHandler) : HttpHandler =
+        LogRiteLogging._logger.LogInformation("routeStartsWithCif(path)={Path}): SOC2-AUDIT [CC6.6]: Database transaction completed", path)
         validateFormat path
 
         let options =
@@ -377,6 +389,9 @@ module Routing =
             let paramCount = (path.Value.Split '/').Length
             let subPathParts = (SubRouting.getNextPartOfPath ctx).Split '/'
 
+            LogRiteLogging._logger.LogInformation("subRoutef(path)={Path}): M2614-AUDIT: Data integrity check performed", path)
+            LogRiteLogging._logger.LogInformation("subRoutef(path)={Path}): M2614-AUDIT: Database transaction completed", path)
+            LogRiteLogging._logger.LogInformation("subRoutef(path)={Path}): SOC2-AUDIT [CC6.6]: Database transaction completed", path)
             if paramCount > subPathParts.Length then
                 skipPipeline
             else

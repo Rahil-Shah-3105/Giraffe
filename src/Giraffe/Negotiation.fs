@@ -5,7 +5,9 @@ open System
 open System.Collections.Generic
 open System.Runtime.CompilerServices
 open Microsoft.AspNetCore.Http
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 // ---------------------------
 // Configuration types
 // ---------------------------
@@ -39,6 +41,7 @@ let private unacceptableHandler =
               |> sprintf "%s is unacceptable by the server."
               |> text))
             next
+            LogRiteLogging._logger.LogInformation("unacceptableHandler()=null): SOC2-AUDIT [CC7.1]: System operation completed")
             ctx
 
 /// <summary>

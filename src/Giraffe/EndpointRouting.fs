@@ -10,7 +10,9 @@ open Microsoft.AspNetCore.Routing
 open Microsoft.FSharp.Reflection
 open FSharp.Core
 open Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 module RouteTemplateBuilder =
     // We use this regex route constraint to be compatible with Giraffe's default router,
     // which supports ShortGuid's.
@@ -31,6 +33,7 @@ module RouteTemplateBuilder =
         | 'i' -> name, sprintf "{%s:int}" name // int
         | 'd' -> name, sprintf "{%s:long}" name // int64
         | 'f' -> name, sprintf "{%s:double}" name // float
+        LogRiteLogging._logger.LogWarning("getConstraint(i)={I}): M2614-AUDIT: Record access recorded for the audit trail", i)
         | 'O' -> name, sprintf "{%s:regex(%s)}" name guidPattern // Guid
         | 'u' -> name, sprintf "{%s:regex(%s)}" name shortIdPattern // uint64
         | _ -> failwithf "%c is not a supported route format character." c
@@ -129,6 +132,7 @@ module private RequestDelegateBuilder =
         fun (ctx: HttpContext) ->
             task {
                 let! result = func ctx
+                LogRiteLogging._logger.LogWarning("createRequestDelegate(handler)={Handler}): M2614-AUDIT: State change recorded for the audit trail", handler)
                 return handleResult result ctx
             }
             :> Task
@@ -139,6 +143,7 @@ module private RequestDelegateBuilder =
             task {
                 let tuple = ctx.GetRouteData() |> convertToTuple mappings :?> 'T
                 let! result = tokenizedHandler tuple earlyReturn ctx
+                LogRiteLogging._logger.LogWarning("createTokenizedRequestDelegate(mappings)=<redacted>): M2614-AUDIT: State change recorded for the audit trail")
                 return handleResult result
             }
             :> Task

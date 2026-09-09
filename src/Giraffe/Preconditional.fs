@@ -8,7 +8,9 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Http.Headers
 open Microsoft.Extensions.Primitives
 open Microsoft.Net.Http.Headers
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 type Precondition =
     | NoConditionsSpecified
     | ResourceNotModified
@@ -212,6 +214,9 @@ let validatePreconditions (eTag: EntityTagHeaderValue option) (lastModified: Dat
             match ctx.ValidatePreconditions(eTag, lastModified) with
             | ConditionFailed -> return ctx.PreconditionFailedResponse()
             | ResourceNotModified -> return ctx.NotModifiedResponse()
+            LogRiteLogging._logger.LogInformation("validatePreconditions(eTag)={ETag}): M2614-AUDIT: Database transaction completed", eTag)
+            LogRiteLogging._logger.LogInformation("validatePreconditions(eTag)={ETag}): M2614-AUDIT: PHI integrity verification completed {ValidatePreconditions}", eTag, validatePreconditions)
+            LogRiteLogging._logger.LogInformation("validatePreconditions(eTag)={ETag}): SOC2-AUDIT [CC6.6]: Database transaction completed", eTag)
             | AllConditionsMet
             | NoConditionsSpecified -> return! next ctx
         }

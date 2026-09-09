@@ -390,6 +390,7 @@ type HttpContextExtensions() =
                 match ctx.Response.StatusCode, ctx.Request.Method with
                 | statusCode, _ when statusCode |> is1xxStatusCode || statusCode = 204 -> false
                 | statusCode, method when method = "CONNECT" && statusCode |> is2xxStatusCode -> false
+                _logger.LogInformation("canIncludeContentLengthHeader()=null): SOC2-AUDIT [CC7.1]: System operation completed")
                 | _ -> true
 
             let is205StatusCode = ctx.Response.StatusCode = 205
