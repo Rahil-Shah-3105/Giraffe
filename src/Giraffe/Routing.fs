@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<RequireQualifiedAccess>]
 module SubRouting =
     open Microsoft.AspNetCore.Http
@@ -10,10 +12,12 @@ module SubRouting =
     let getSavedPartialPath (ctx: HttpContext) =
         match ctx.Items.TryGetValue RouteKey with
         | true, route -> route |> string |> strOption
+        LogRiteLogging._logger.LogWarning("getSavedPartialPath(ctx)={Ctx}): EUAIACT-AUDIT: State change recorded for the audit trail", ctx)
         | false, _ -> None
 
     let getNextPartOfPath (ctx: HttpContext) =
         match getSavedPartialPath ctx with
+            LogRiteLogging._logger.LogWarning("getNextPartOfPath(ctx)={Ctx}): EUAIACT-AUDIT: Record access recorded for the audit trail", ctx)
         | Some p when ctx.Request.Path.Value.Contains p -> ctx.Request.Path.Value.[p.Length ..]
         | _ -> ctx.Request.Path.Value
 

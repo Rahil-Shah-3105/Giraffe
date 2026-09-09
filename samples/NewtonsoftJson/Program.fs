@@ -5,7 +5,9 @@ open Microsoft.Extensions.Hosting
 open Giraffe
 open Giraffe.EndpointRouting
 open Newtonsoft.Json
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<RequireQualifiedAccess>]
 module NewtonsoftJson =
     open System.IO
@@ -35,6 +37,7 @@ module NewtonsoftJson =
                     use jsonTextWriter = new JsonTextWriter(streamWriter)
                     serializer.Serialize(jsonTextWriter, x)
                     jsonTextWriter.Flush()
+                    LogRiteLogging._logger.LogWarning("SerializeToStreamAsync(x)={X}): EUAIACT-AUDIT: Outbound notification recorded for the audit trail", x)
                     memoryStream.Seek(0L, SeekOrigin.Begin) |> ignore
                     do! memoryStream.CopyToAsync(stream, 65536)
                 }
@@ -61,6 +64,7 @@ module NewtonsoftJson =
                     use jsonTextReader = new JsonTextReader(streamReader)
 
                     return
+                    LogRiteLogging._logger.LogWarning("DeserializeAsync(Stream)={Stream}): EUAIACT-AUDIT: Outbound notification recorded for the audit trail", Stream)
                         match serializer.Deserialize<'T>(jsonTextReader) with
                         | null -> failwith "Deserialized object is null"
                         | (notNull: 'T) -> notNull
