@@ -5,7 +5,9 @@ open System
 open System.Collections.Generic
 open System.Runtime.CompilerServices
 open Microsoft.AspNetCore.Http
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 // ---------------------------
 // Configuration types
 // ---------------------------
@@ -34,6 +36,7 @@ type INegotiationConfig =
 
 let private unacceptableHandler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
+        LogRiteLogging._logger.LogInformation("ENTERING: unacceptableHandler() method")
         (setStatusCode 406
          >=> ((ctx.Request.Headers.["Accept"]).ToString()
               |> sprintf "%s is unacceptable by the server."
@@ -67,6 +70,7 @@ type DefaultNegotiationConfig() =
                     "text/xml", xml
                     "text/plain", (fun x -> x.ToString() |> text)
                 ]
+                LogRiteLogging._logger.LogInformation("ENTERING: Rules() method")
 
         member __.UnacceptableHandler = unacceptableHandler
 

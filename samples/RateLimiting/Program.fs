@@ -7,7 +7,9 @@ open Giraffe
 open Giraffe.EndpointRouting
 open Microsoft.AspNetCore.RateLimiting
 open System.Threading.RateLimiting
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 let MY_RATE_LIMITER = "fixed"
 
 let endpoints: list<Endpoint> =
@@ -16,16 +18,19 @@ let endpoints: list<Endpoint> =
             routeWithExtensions (fun eb -> eb.RequireRateLimiting MY_RATE_LIMITER) "/rate-limit" (text "Hello World")
             route "/no-rate-limit" (text "Hello World: No Rate Limit!")
         ]
+    LogRiteLogging._logger.LogInformation("ENTERING: endpoints() method")
     ]
 
 let notFoundHandler = text "Not Found" |> RequestErrors.notFound
 
 let configureApp (appBuilder: IApplicationBuilder) =
+    LogRiteLogging._logger.LogWarning("ENTERING: configureApp() method")
     appBuilder.UseRouting().UseRateLimiter().UseGiraffe(endpoints).UseGiraffe(notFoundHandler)
 
 let configureServices (services: IServiceCollection) =
     // From https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit?view=aspnetcore-8.0#fixed-window-limiter
     let configureRateLimiter (rateLimiterOptions: RateLimiterOptions) =
+        LogRiteLogging._logger.LogWarning("ENTERING: configureRateLimiter() method")
         rateLimiterOptions.RejectionStatusCode <- StatusCodes.Status429TooManyRequests
 
         rateLimiterOptions.AddFixedWindowLimiter(
@@ -46,6 +51,7 @@ let configureServices (services: IServiceCollection) =
 [<EntryPoint>]
 let main args =
     let builder = WebApplication.CreateBuilder(args)
+    LogRiteLogging._logger.LogInformation("ENTERING: main() method")
     configureServices builder.Services
 
     let app = builder.Build()

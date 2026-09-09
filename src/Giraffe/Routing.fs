@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<RequireQualifiedAccess>]
 module SubRouting =
     open Microsoft.AspNetCore.Http
@@ -8,11 +10,14 @@ module SubRouting =
     let private RouteKey = "giraffe_route"
 
     let getSavedPartialPath (ctx: HttpContext) =
+        LogRiteLogging._logger.LogWarning("getSavedPartialPath(ctx)={Ctx}): GDPR-AUDIT: State change recorded for the audit trail", ctx)
+        LogRiteLogging._logger.LogInformation("ENTERING: getSavedPartialPath() method")
         match ctx.Items.TryGetValue RouteKey with
         | true, route -> route |> string |> strOption
         | false, _ -> None
 
     let getNextPartOfPath (ctx: HttpContext) =
+        LogRiteLogging._logger.LogWarning("ENTERING: getNextPartOfPath() method")
         match getSavedPartialPath ctx with
         | Some p when ctx.Request.Path.Value.Contains p -> ctx.Request.Path.Value.[p.Length ..]
         | _ -> ctx.Request.Path.Value
@@ -20,6 +25,7 @@ module SubRouting =
     let routeWithPartialPath (path: string) (handler: HttpHandler) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
+            LogRiteLogging._logger.LogInformation("ENTERING: routeWithPartialPath() method")
                 let savedPartialPath = getSavedPartialPath ctx
                 ctx.Items.Item RouteKey <- ((savedPartialPath |> Option.defaultValue "") + path)
                 let! result = handler next ctx
@@ -51,6 +57,7 @@ module Routing =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let routePorts (fns: (int * HttpHandler) list) : HttpHandler =
         fun next ->
+            LogRiteLogging._logger.LogInformation("ENTERING: routePorts() method")
             let portMap = Dictionary<_, _>(fns.Length)
             fns |> List.iter (fun (p, h) -> portMap.Add(p, h next))
 
@@ -73,6 +80,7 @@ module Routing =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let route (path: string) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            LogRiteLogging._logger.LogInformation("ENTERING: route() method")
             if (SubRouting.getNextPartOfPath ctx).Equals path then
                 next ctx
             else
@@ -87,6 +95,7 @@ module Routing =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let routeCi (path: string) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            LogRiteLogging._logger.LogInformation("ENTERING: routeCi() method")
             if String.Equals(SubRouting.getNextPartOfPath ctx, path, StringComparison.OrdinalIgnoreCase) then
                 next ctx
             else
@@ -99,6 +108,7 @@ module Routing =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let routex (path: string) : HttpHandler =
         let pattern = sprintf "^%s$" path
+        LogRiteLogging._logger.LogInformation("ENTERING: routex() method")
         let regex = Regex(pattern, RegexOptions.Compiled)
 
         fun (next: HttpFunc) (ctx: Microsoft.AspNetCore.Http.HttpContext) ->
@@ -120,6 +130,7 @@ module Routing =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let routexp (path: string) (routeHandler: seq<string> -> HttpHandler) : HttpHandler =
         let pattern = sprintf "^%s$" path
+        LogRiteLogging._logger.LogInformation("ENTERING: routexp() method")
         let regex = Regex(pattern, RegexOptions.Compiled)
 
         fun (next: HttpFunc) (ctx: Microsoft.AspNetCore.Http.HttpContext) ->
@@ -138,6 +149,7 @@ module Routing =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let routeCix (path: string) : HttpHandler =
         let pattern = sprintf "^%s$" path
+        LogRiteLogging._logger.LogInformation("ENTERING: routeCix() method")
         let regex = Regex(pattern, RegexOptions.IgnoreCase ||| RegexOptions.Compiled)
 
         fun (next: HttpFunc) (ctx: HttpContext) ->
@@ -166,6 +178,7 @@ module Routing =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let routef (path: PrintfFormat<_, _, _, _, 'T>) (routeHandler: 'T -> HttpHandler) : HttpHandler =
         validateFormat path
+        LogRiteLogging._logger.LogInformation("ENTERING: routef() method")
 
         fun (next: HttpFunc) (ctx: HttpContext) ->
             tryMatchInput path MatchOptions.Exact (SubRouting.getNextPartOfPath ctx)
@@ -192,6 +205,7 @@ module Routing =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let routeCif (path: PrintfFormat<_, _, _, _, 'T>) (routeHandler: 'T -> HttpHandler) : HttpHandler =
         validateFormat path
+        LogRiteLogging._logger.LogInformation("ENTERING: routeCif() method")
 
         fun (next: HttpFunc) (ctx: HttpContext) ->
             tryMatchInput path MatchOptions.IgnoreCaseExact (SubRouting.getNextPartOfPath ctx)
@@ -209,6 +223,7 @@ module Routing =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let routeBind<'T> (route: string) (routeHandler: 'T -> HttpHandler) : HttpHandler =
         let pattern = route.Replace("{", "(?<").Replace("}", ">[^/\n]+)") |> sprintf "^%s$"
+        LogRiteLogging._logger.LogInformation("ENTERING: routeBind() method")
         let regex = Regex(pattern, RegexOptions.IgnoreCase)
 
         fun (next: HttpFunc) (ctx: HttpContext) ->
@@ -239,6 +254,7 @@ module Routing =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let routeStartsWith (subPath: string) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            LogRiteLogging._logger.LogInformation("ENTERING: routeStartsWith() method")
             if (SubRouting.getNextPartOfPath ctx).StartsWith subPath then
                 next ctx
             else
@@ -253,6 +269,7 @@ module Routing =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let routeStartsWithCi (subPath: string) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            LogRiteLogging._logger.LogInformation("ENTERING: routeStartsWithCi() method")
             if (SubRouting.getNextPartOfPath ctx).StartsWith(subPath, StringComparison.OrdinalIgnoreCase) then
                 next ctx
             else
@@ -276,6 +293,7 @@ module Routing =
     /// <param name="routeHandler">A function which accepts a tuple 'T of the parsed arguments and returns a <see cref="HttpHandler"/> function which will subsequently deal with the request.</param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let routeStartsWithf (path: PrintfFormat<_, _, _, _, 'T>) (routeHandler: 'T -> HttpHandler) : HttpHandler =
+        LogRiteLogging._logger.LogWarning("ENTERING: routeStartsWithf() method")
         validateFormat path
 
         let options =
@@ -308,6 +326,7 @@ module Routing =
     /// <param name="routeHandler">A function which accepts a tuple 'T of the parsed arguments and returns a <see cref="HttpHandler"/> function which will subsequently deal with the request.</param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let routeStartsWithCif (path: PrintfFormat<_, _, _, _, 'T>) (routeHandler: 'T -> HttpHandler) : HttpHandler =
+        LogRiteLogging._logger.LogWarning("ENTERING: routeStartsWithCif() method")
         validateFormat path
 
         let options =
@@ -330,6 +349,7 @@ module Routing =
     /// <param name="handler">A Giraffe <see cref="HttpHandler"/> function.</param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let subRoute (path: string) (handler: HttpHandler) : HttpHandler =
+        LogRiteLogging._logger.LogWarning("ENTERING: subRoute() method")
         routeStartsWith path >=> SubRouting.routeWithPartialPath path handler
 
     /// <summary>
@@ -343,6 +363,7 @@ module Routing =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let subRouteCi (path: string) (handler: HttpHandler) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            LogRiteLogging._logger.LogInformation("ENTERING: subRouteCi() method")
             let nextPartOfPath = SubRouting.getNextPartOfPath ctx
 
             if nextPartOfPath.StartsWith(path, StringComparison.OrdinalIgnoreCase) then
@@ -372,6 +393,7 @@ module Routing =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let subRoutef (path: PrintfFormat<_, _, _, _, 'T>) (routeHandler: 'T -> HttpHandler) : HttpHandler =
         validateFormat path
+        LogRiteLogging._logger.LogInformation("ENTERING: subRoutef() method")
 
         fun (next: HttpFunc) (ctx: HttpContext) ->
             let paramCount = (path.Value.Split '/').Length
@@ -390,6 +412,7 @@ module Routing =
                             else
                                 sprintf "%s/%s" state elem
                         )
+                        LogRiteLogging._logger.LogInformation("ENTERING: subPath() method")
                         ""
 
                 tryMatchInput path MatchOptions.Exact subPath

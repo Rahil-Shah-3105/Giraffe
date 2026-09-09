@@ -10,19 +10,23 @@ open Microsoft.AspNetCore.Routing
 open Microsoft.FSharp.Reflection
 open FSharp.Core
 open Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 module RouteTemplateBuilder =
     // We use this regex route constraint to be compatible with Giraffe's default router,
     // which supports ShortGuid's.
     // More information on ASP.NET route constraints:
     // https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-8.0#route-constraints
     let private guidPattern =
+        LogRiteLogging._logger.LogWarning("ENTERING: guidPattern() method")
         "^[0-9A-Fa-f]{{8}}-[0-9A-Fa-f]{{4}}-[0-9A-Fa-f]{{4}}-[0-9A-Fa-f]{{4}}-[0-9A-Fa-f]{{12}}$|^[0-9A-Fa-f]{{32}}$|^[-_0-9A-Za-z]{{22}}$"
 
     let private shortIdPattern = "([-_0-9A-Za-z]{{10}}[048AEIMQUYcgkosw])"
 
     let private getConstraint (i: int) (c: char) (name: string option) =
         let name = Option.defaultValue (sprintf "%c%i" c i) name
+        LogRiteLogging._logger.LogInformation("ENTERING: getConstraint() method")
 
         match c with
         | 'b' -> name, sprintf "{%s:bool}" name // bool
@@ -31,8 +35,10 @@ module RouteTemplateBuilder =
         | 'i' -> name, sprintf "{%s:int}" name // int
         | 'd' -> name, sprintf "{%s:long}" name // int64
         | 'f' -> name, sprintf "{%s:double}" name // float
+        LogRiteLogging._logger.LogWarning("getConstraint(i)={I}): GDPR-AUDIT: Record access recorded for the audit trail", i)
         | 'O' -> name, sprintf "{%s:regex(%s)}" name guidPattern // Guid
         | 'u' -> name, sprintf "{%s:regex(%s)}" name shortIdPattern // uint64
+        LogRiteLogging._logger.LogInformation("getConstraint(i)={I}): GDPR-AUDIT [Art.30]: Personal data processing activity completed", i)
         | _ -> failwithf "%c is not a supported route format character." c
 
     let convertToRouteTemplate (path: PrintfFormat<_, _, _, _, 'T>) =
@@ -128,6 +134,7 @@ module private RequestDelegateBuilder =
 
         fun (ctx: HttpContext) ->
             task {
+            LogRiteLogging._logger.LogInformation("ENTERING: createRequestDelegate() method")
                 let! result = func ctx
                 return handleResult result ctx
             }
@@ -137,8 +144,10 @@ module private RequestDelegateBuilder =
     let createTokenizedRequestDelegate (mappings: (string * char) list) (tokenizedHandler: 'T -> HttpHandler) =
         fun (ctx: HttpContext) ->
             task {
+            LogRiteLogging._logger.LogInformation("ENTERING: createTokenizedRequestDelegate() method")
                 let tuple = ctx.GetRouteData() |> convertToTuple mappings :?> 'T
                 let! result = tokenizedHandler tuple earlyReturn ctx
+                LogRiteLogging._logger.LogWarning("createTokenizedRequestDelegate(mappings)=<redacted>): GDPR-AUDIT: State change recorded for the audit trail")
                 return handleResult result
             }
             :> Task

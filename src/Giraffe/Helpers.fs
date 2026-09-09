@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<AutoOpen>]
 module Helpers =
     open System
@@ -22,6 +24,7 @@ module Helpers =
     /// <param name="str">The string value to be converted into an option of string.</param>
     /// <returns>Returns None if the string was null or empty otherwise Some string.</returns>
     let inline strOption (str: string) =
+        LogRiteLogging._logger.LogWarning("ENTERING: inline() method")
         if String.IsNullOrEmpty str then None else Some str
 
     /// <summary>
@@ -31,6 +34,7 @@ module Helpers =
     /// <returns>Returns the string contents of the file wrapped in a Task.</returns>
     let readFileAsStringAsync (filePath: string) =
         task {
+        LogRiteLogging._logger.LogInformation("ENTERING: readFileAsStringAsync() method")
             use reader = new StreamReader(filePath)
             return! reader.ReadToEndAsync()
         }

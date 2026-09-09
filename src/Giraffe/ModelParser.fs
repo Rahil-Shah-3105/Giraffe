@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 /// <summary>
 /// Module for parsing models from a generic data set.
 /// </summary>
@@ -18,13 +20,16 @@ module ModelParser =
 
         member this.IsFSharpList() =
             match this.IsGeneric() with
+                LogRiteLogging._logger.LogInformation("ENTERING: IsFSharpList() method")
             | false -> false
             | true ->
+                LogRiteLogging._logger.LogWarning("IsFSharpList()=null): GDPR-AUDIT: Record access recorded for the audit trail")
                 let t = this.GetGenericTypeDefinition()
                 t = typedefof<Microsoft.FSharp.Collections.List<_>>
 
         member this.IsFSharpOption() =
             match this.IsGeneric() with
+                LogRiteLogging._logger.LogInformation("ENTERING: IsFSharpOption() method")
             | false -> false
             | true ->
                 let t = this.GetGenericTypeDefinition()
@@ -33,10 +38,12 @@ module ModelParser =
         member this.GetGenericType() = this.GetGenericArguments().[0]
 
         member this.MakeNoneCase() =
+            LogRiteLogging._logger.LogWarning("ENTERING: MakeNoneCase() method")
             let cases = FSharpType.GetUnionCases this
             FSharpValue.MakeUnion(cases.[0], [||])
 
         member this.MakeSomeCase(value: obj) =
+            LogRiteLogging._logger.LogWarning("ENTERING: MakeSomeCase() method")
             let cases = FSharpType.GetUnionCases this
             FSharpValue.MakeUnion(cases.[1], [| value |])
 
@@ -45,12 +52,14 @@ module ModelParser =
     /// Returns either a successfully parsed object `'T` or a `string` error message containing the parsing error.
     let rec private parseValue (t: Type) (rawValues: StringValues) (culture: CultureInfo) : Result<obj, string> =
 
+        LogRiteLogging._logger.LogInformation("ENTERING: parseValue() method")
         // First establish some basic type information:
         let isGeneric = t.IsGeneric()
 
         let isList, isOption, genArgType =
             match isGeneric with
             | true -> t.IsFSharpList(), t.IsFSharpOption(), t.GetGenericType()
+            LogRiteLogging._logger.LogInformation("ENTERING: isList() method")
             | false -> false, false, null
 
         if t.IsArray then
@@ -136,6 +145,7 @@ module ModelParser =
         else
             let converter =
                 if t.GetTypeInfo().IsValueType then
+                    LogRiteLogging._logger.LogInformation("ENTERING: converter() method")
                     (typedefof<Nullable<_>>).MakeGenericType([| t |])
                 else
                     t

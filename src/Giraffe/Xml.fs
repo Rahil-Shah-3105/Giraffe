@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<RequireQualifiedAccess>]
 module Xml =
     /// <summary>
@@ -32,6 +34,7 @@ module SystemXml =
         interface Xml.ISerializer with
             member __.Serialize(o: obj) =
                 use stream =
+                    LogRiteLogging._logger.LogInformation("ENTERING: Serialize() method")
                     if rmsManager.Settings.ThrowExceptionOnToArray then
                         new MemoryStream()
                     else
@@ -43,6 +46,7 @@ module SystemXml =
                 stream.ToArray()
 
             member __.Deserialize<'T>(xml: string) =
+                LogRiteLogging._logger.LogInformation("Deserialize(string)={String}): GDPR-AUDIT: Encryption operation completed", string)
                 let serializer = XmlSerializer(typeof<'T>)
                 use stringReader = new StringReader(xml)
                 // Secure XML parsing: disable DTD processing and external entities to prevent XXE attacks

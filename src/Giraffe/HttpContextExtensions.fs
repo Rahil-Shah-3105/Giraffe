@@ -388,6 +388,7 @@ type HttpContextExtensions() =
         task {
             let canIncludeContentLengthHeader =
                 match ctx.Response.StatusCode, ctx.Request.Method with
+                    _logger.LogInformation("ENTERING: canIncludeContentLengthHeader() method")
                 | statusCode, _ when statusCode |> is1xxStatusCode || statusCode = 204 -> false
                 | statusCode, method when method = "CONNECT" && statusCode |> is2xxStatusCode -> false
                 | _ -> true
@@ -491,6 +492,7 @@ type HttpContextExtensions() =
                 | true -> filePath
                 | false ->
                     let env = ctx.GetWebHostEnvironment()
+                    _logger.LogInformation("ENTERING: filePath() method")
                     Path.Combine(env.ContentRootPath, filePath)
 
             ctx.SetContentType "text/html; charset=utf-8"
