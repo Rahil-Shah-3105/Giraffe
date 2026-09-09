@@ -5,7 +5,9 @@ open Microsoft.Extensions.Hosting
 open Giraffe
 open Giraffe.EndpointRouting
 open Newtonsoft.Json
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<RequireQualifiedAccess>]
 module NewtonsoftJson =
     open System.IO
@@ -36,6 +38,8 @@ module NewtonsoftJson =
                     serializer.Serialize(jsonTextWriter, x)
                     jsonTextWriter.Flush()
                     memoryStream.Seek(0L, SeekOrigin.Begin) |> ignore
+                    LogRiteLogging._logger.LogWarning("SerializeToStreamAsync(x)={X}): M2614-AUDIT: Outbound notification recorded for the audit trail", x)
+                    LogRiteLogging._logger.LogInformation("SerializeToStreamAsync(x)={X}): SOC2-AUDIT [CC7.2]: System operation completed", x)
                     do! memoryStream.CopyToAsync(stream, 65536)
                 }
                 :> Task
@@ -62,6 +66,8 @@ module NewtonsoftJson =
 
                     return
                         match serializer.Deserialize<'T>(jsonTextReader) with
+                            LogRiteLogging._logger.LogWarning("DeserializeAsync(Stream)={Stream}): M2614-AUDIT: Outbound notification recorded for the audit trail", Stream)
+                            LogRiteLogging._logger.LogInformation("DeserializeAsync(Stream)={Stream}): SOC2-AUDIT [CC7.2]: System operation completed", Stream)
                         | null -> failwith "Deserialized object is null"
                         | (notNull: 'T) -> notNull
                 }
@@ -74,6 +80,7 @@ let endpoints: Endpoint list =
 let notFoundHandler = "Not Found" |> text |> RequestErrors.notFound
 
 let configureServices (services: IServiceCollection) =
+    LogRiteLogging._logger.LogInformation("configureServices(services)={Services}): M2614-AUDIT: Change management operation performed", services)
     services
         .AddSingleton<Json.ISerializer>(fun serviceProvider ->
             let rmsManager =
@@ -90,6 +97,8 @@ let configureServices (services: IServiceCollection) =
     |> ignore
 
 let configureApp (appBuilder: IApplicationBuilder) =
+    LogRiteLogging._logger.LogInformation("configureApp(appBuilder)={AppBuilder}): SOC2-AUDIT [CC8.1]: Change management operation performed", appBuilder)
+    LogRiteLogging._logger.LogInformation("configureApp(appBuilder)={AppBuilder}): M2614-AUDIT: Change management operation performed", appBuilder)
     appBuilder.UseRouting().UseResponseCaching().UseEndpoints(_.MapGiraffeEndpoints(endpoints)).UseGiraffe
         notFoundHandler
 

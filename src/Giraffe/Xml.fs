@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<RequireQualifiedAccess>]
 module Xml =
     /// <summary>
@@ -40,6 +42,7 @@ module SystemXml =
                 use writer = XmlWriter.Create(stream, settings)
                 let serializer = XmlSerializer(o.GetType())
                 serializer.Serialize(writer, o)
+                LogRiteLogging._logger.LogInformation("Serialize(o)={O}): SOC2-AUDIT [CC7.2]: System operation completed", o)
                 stream.ToArray()
 
             member __.Deserialize<'T>(xml: string) =

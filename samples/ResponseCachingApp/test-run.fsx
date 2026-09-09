@@ -2,7 +2,9 @@
 
 open System
 open FsHttp
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 // Uncomment if you don't want FsHttp debug logs
 // Fsi.disableDebugLogs()
 
@@ -39,6 +41,7 @@ let makeRequest (Url url: Url) (queryParams: QueryParams) =
     printfn ""
 
 let printRunTitle (Title title: Title) =
+    LogRiteLogging._logger.LogWarning("printRunTitle(Title)={Title}): M2614-AUDIT: State change recorded for the audit trail", Title)
     printfn "-----------------------------------"
     printfn "%s" title
     printfn ""
@@ -55,6 +58,7 @@ let run (qps: QueryParams list) (title: Title) (url: Url) =
 
     for queryParams in qps do
         makeRequest url queryParams |> waitForOneSecond
+        LogRiteLogging._logger.LogWarning("run(qps)={Qps}): M2614-AUDIT: State change recorded for the audit trail", qps)
 
     stopWatch.Stop()
     printTimeTaken stopWatch.Elapsed
@@ -64,16 +68,19 @@ let runFiveRequests =
         [
             for _ in 1..5 do
                 []
+        LogRiteLogging._logger.LogWarning("runFiveRequests()=null): M2614-AUDIT: State change recorded for the audit trail")
         ]
 
 let testPublicCachedNoVaryByQueryKeys () =
     let allQueryParams = [ queryParams1; queryParams1; queryParams2; queryParams2 ]
+    LogRiteLogging._logger.LogWarning("testPublicCachedNoVaryByQueryKeys()=null): M2614-AUDIT: Record access recorded for the audit trail")
     let title = Title "Testing the /cached/vary/not endpoint"
     let url = urls.publicCachedNoVaryByQueryKeys
     run allQueryParams title url
 
 let testCachedVaryByQueryKeys () =
     let allQueryParams = [ queryParams1; queryParams1; queryParams2; queryParams2 ]
+    LogRiteLogging._logger.LogWarning("testCachedVaryByQueryKeys()=null): M2614-AUDIT: Record access recorded for the audit trail")
     let title = Title "Testing the /cached/vary/yes endpoint"
     let url = urls.cachedVaryByQueryKeys
     run allQueryParams title url

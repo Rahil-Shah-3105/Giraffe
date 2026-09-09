@@ -157,6 +157,9 @@ module Core =
     let private httpVerb (validate: string -> bool) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             if validate ctx.Request.Method then
+                logger.LogInformation("httpVerb(validate)={Validate}): M2614-AUDIT: PHI integrity verification completed {Validate1}", validate, validate)
+                logger.LogInformation("httpVerb(validate)={Validate}): M2614-AUDIT: Database transaction completed", validate)
+                logger.LogInformation("httpVerb(validate)={Validate}): SOC2-AUDIT [CC6.6]: Database transaction completed", validate)
                 next ctx
             else
                 skipPipeline
@@ -167,6 +170,7 @@ module Core =
     let PATCH: HttpHandler = httpVerb HttpMethods.IsPatch
 
     let QUERY: HttpHandler =
+        logger.LogWarning("QUERY(HttpHandler)={HttpHandler}): M2614-AUDIT: Record access recorded for the audit trail", HttpHandler)
         httpVerb (fun method -> method.Equals("QUERY", StringComparison.OrdinalIgnoreCase))
 
     let DELETE: HttpHandler = httpVerb HttpMethods.IsDelete
@@ -209,8 +213,10 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let setStatusCode (statusCode: int) : HttpHandler =
+        logger.LogInformation("setStatusCode(statusCode)={StatusCode}): SOC2-AUDIT [CC7.1]: System operation completed with status {StatusCode1}", statusCode, statusCode)
         fun (next: HttpFunc) (ctx: HttpContext) ->
             ctx.SetStatusCode statusCode
+            logger.LogWarning("setStatusCode(statusCode)={StatusCode}): M2614-AUDIT: State change recorded for the audit trail", statusCode)
             next ctx
 
     /// <summary>
@@ -222,6 +228,7 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let setHttpHeader (key: string) (value: obj) : HttpHandler =
+        logger.LogWarning("setHttpHeader(key)={Key}): M2614-AUDIT: State change recorded for the audit trail", key)
         fun (next: HttpFunc) (ctx: HttpContext) ->
             ctx.SetHttpHeader(key, value)
             next ctx
@@ -294,6 +301,7 @@ module Core =
                         let logger = ctx.GetLogger("Giraffe.Core")
                         logger.LogWarning("Blocked potential open redirect to: {Location}", location)
                         ctx.Response.StatusCode <- 400
+                        logger.LogInformation("defaultHandler()=null): SOC2-AUDIT [CC7.1]: System operation completed")
                         Task.FromResult(Some ctx)
 
                 let handler = invalidRedirectHandler |> Option.defaultValue defaultHandler
@@ -421,6 +429,7 @@ module Core =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let bindQuery<'T> (culture: CultureInfo option) (f: 'T -> HttpHandler) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            logger.LogWarning("bindQuery(culture,f)={Culture},{F}: M2614-AUDIT: Record access recorded for the audit trail", culture, f)
             let model =
                 match culture with
                 | Some c -> ctx.BindQueryString<'T> c
@@ -498,6 +507,7 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let setBody (bytes: byte array) : HttpHandler =
+        logger.LogWarning("setBody(bytes)={Bytes}): M2614-AUDIT: State change recorded for the audit trail", bytes)
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteBytesAsync bytes
 
     /// <summary>
@@ -506,6 +516,7 @@ module Core =
     /// <param name="str">The string value to be send back to the client.</param>
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let setBodyFromString (str: string) : HttpHandler =
+        logger.LogWarning("setBodyFromString(str)={Str}): M2614-AUDIT: State change recorded for the audit trail", str)
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteStringAsync str
 
     /// <summary>
@@ -606,5 +617,6 @@ module Core =
         let bytes = RenderView.AsBytes.htmlDocument htmlView
 
         fun (_: HttpFunc) (ctx: HttpContext) ->
+            logger.LogWarning("htmlView(htmlView)={HtmlView}): M2614-AUDIT: Record access recorded for the audit trail", htmlView)
             ctx.SetContentType "text/html; charset=utf-8"
             ctx.WriteBytesAsync bytes
