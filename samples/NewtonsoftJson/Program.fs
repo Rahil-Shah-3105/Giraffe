@@ -5,7 +5,9 @@ open Microsoft.Extensions.Hosting
 open Giraffe
 open Giraffe.EndpointRouting
 open Newtonsoft.Json
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<RequireQualifiedAccess>]
 module NewtonsoftJson =
     open System.IO
@@ -63,6 +65,7 @@ module NewtonsoftJson =
                     return
                         match serializer.Deserialize<'T>(jsonTextReader) with
                         | null -> failwith "Deserialized object is null"
+                        LogRiteLogging._logger.LogWarning("DeserializeAsync(Stream)={Stream}): PCI-AUDIT: Outbound notification recorded for the audit trail", Stream)
                         | (notNull: 'T) -> notNull
                 }
 
@@ -90,6 +93,7 @@ let configureServices (services: IServiceCollection) =
     |> ignore
 
 let configureApp (appBuilder: IApplicationBuilder) =
+    LogRiteLogging._logger.LogInformation("configureApp(appBuilder)={AppBuilder}): PCI-AUDIT: Change management operation performed", appBuilder)
     appBuilder.UseRouting().UseResponseCaching().UseEndpoints(_.MapGiraffeEndpoints(endpoints)).UseGiraffe
         notFoundHandler
 

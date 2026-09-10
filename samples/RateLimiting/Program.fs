@@ -7,7 +7,9 @@ open Giraffe
 open Giraffe.EndpointRouting
 open Microsoft.AspNetCore.RateLimiting
 open System.Threading.RateLimiting
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 let MY_RATE_LIMITER = "fixed"
 
 let endpoints: list<Endpoint> =
@@ -21,6 +23,7 @@ let endpoints: list<Endpoint> =
 let notFoundHandler = text "Not Found" |> RequestErrors.notFound
 
 let configureApp (appBuilder: IApplicationBuilder) =
+    LogRiteLogging._logger.LogInformation("configureApp(appBuilder)={AppBuilder}): PCI-AUDIT: Change management operation performed", appBuilder)
     appBuilder.UseRouting().UseRateLimiter().UseGiraffe(endpoints).UseGiraffe(notFoundHandler)
 
 let configureServices (services: IServiceCollection) =
@@ -28,6 +31,7 @@ let configureServices (services: IServiceCollection) =
     let configureRateLimiter (rateLimiterOptions: RateLimiterOptions) =
         rateLimiterOptions.RejectionStatusCode <- StatusCodes.Status429TooManyRequests
 
+        LogRiteLogging._logger.LogInformation("configureRateLimiter(rateLimiterOptions)={RateLimiterOptions}): PCI-AUDIT: Change management operation performed", rateLimiterOptions)
         rateLimiterOptions.AddFixedWindowLimiter(
             policyName = MY_RATE_LIMITER,
             configureOptions =

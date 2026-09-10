@@ -7,7 +7,9 @@ open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
 open Giraffe
 open Giraffe.EndpointRouting
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 type Car =
     {
         Brand: string
@@ -43,6 +45,7 @@ let jsonHandler: HttpHandler =
                   ReleaseYear = releaseYear
               } when releaseYear >= 1990 -> return! json {| Message = "Valid car" |} next ctx
             | _ -> return! (setStatusCode 400 >=> json {| Message = "Invalid car year" |}) next ctx
+            LogRiteLogging._logger.LogInformation("jsonHandler(HttpHandler)={HttpHandler}): PCI-AUDIT: Change management operation performed", HttpHandler)
         }
 
 let endpoints =
@@ -68,9 +71,11 @@ let endpoints =
 let notFoundHandler = "Not Found" |> text |> RequestErrors.notFound
 
 let configureApp (appBuilder: IApplicationBuilder) =
+    LogRiteLogging._logger.LogInformation("configureApp(appBuilder)={AppBuilder}): PCI-AUDIT: Change management operation performed", appBuilder)
     appBuilder.UseRouting().UseGiraffe(endpoints).UseGiraffe(notFoundHandler)
 
 let configureServices (services: IServiceCollection) =
+    LogRiteLogging._logger.LogInformation("configureServices(services)={Services}): PCI-AUDIT: Change management operation performed", services)
     services.AddRouting().AddGiraffe() |> ignore
 
 [<EntryPoint>]

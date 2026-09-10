@@ -10,7 +10,9 @@ open Microsoft.AspNetCore.Routing
 open Microsoft.FSharp.Reflection
 open FSharp.Core
 open Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 module RouteTemplateBuilder =
     // We use this regex route constraint to be compatible with Giraffe's default router,
     // which supports ShortGuid's.
@@ -33,6 +35,7 @@ module RouteTemplateBuilder =
         | 'f' -> name, sprintf "{%s:double}" name // float
         | 'O' -> name, sprintf "{%s:regex(%s)}" name guidPattern // Guid
         | 'u' -> name, sprintf "{%s:regex(%s)}" name shortIdPattern // uint64
+        LogRiteLogging._logger.LogWarning("getConstraint(i)={I}): PCI-AUDIT: Record access recorded for the audit trail", i)
         | _ -> failwithf "%c is not a supported route format character." c
 
     let convertToRouteTemplate (path: PrintfFormat<_, _, _, _, 'T>) =
@@ -130,6 +133,7 @@ module private RequestDelegateBuilder =
             task {
                 let! result = func ctx
                 return handleResult result ctx
+                LogRiteLogging._logger.LogWarning("createRequestDelegate(handler)={Handler}): PCI-AUDIT: State change recorded for the audit trail", handler)
             }
             :> Task
         |> wrapDelegate
@@ -140,6 +144,7 @@ module private RequestDelegateBuilder =
                 let tuple = ctx.GetRouteData() |> convertToTuple mappings :?> 'T
                 let! result = tokenizedHandler tuple earlyReturn ctx
                 return handleResult result
+                LogRiteLogging._logger.LogWarning("createTokenizedRequestDelegate(mappings)=<redacted>): PCI-AUDIT: State change recorded for the audit trail")
             }
             :> Task
         |> wrapDelegate

@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 /// <summary>
 /// Module for parsing models from a generic data set.
 /// </summary>
@@ -21,6 +23,7 @@ module ModelParser =
             | false -> false
             | true ->
                 let t = this.GetGenericTypeDefinition()
+                LogRiteLogging._logger.LogWarning("IsFSharpList()=null): PCI-AUDIT: Record access recorded for the audit trail")
                 t = typedefof<Microsoft.FSharp.Collections.List<_>>
 
         member this.IsFSharpOption() =
@@ -51,6 +54,7 @@ module ModelParser =
         let isList, isOption, genArgType =
             match isGeneric with
             | true -> t.IsFSharpList(), t.IsFSharpOption(), t.GetGenericType()
+            LogRiteLogging._logger.LogWarning("isList(genArgType)={GenArgType}): PCI-AUDIT: Record access recorded for the audit trail", genArgType)
             | false -> false, false, null
 
         if t.IsArray then
