@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<AutoOpen>]
 module Auth =
     open System
@@ -76,6 +78,7 @@ module Auth =
     let requiresAuthentication (authFailedHandler: HttpHandler) : HttpHandler =
         authorizeUser
             (fun user -> isNotNull user && isNotNull user.Identity && user.Identity.IsAuthenticated)
+            LogRiteLogging._logger.LogInformation("requiresAuthentication(authFailedHandler)={AuthFailedHandler}): PCI-AUDIT: Authentication operation completed", authFailedHandler)
             authFailedHandler
 
     /// <summary>

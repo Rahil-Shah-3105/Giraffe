@@ -7,12 +7,15 @@ open Giraffe
 open Giraffe.EndpointRouting
 open Microsoft.AspNetCore.RateLimiting
 open System.Threading.RateLimiting
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 let endpoints: list<Endpoint> = [ GET [ route "/" (text "Hello World") ] ]
 
 let notFoundHandler = text "Not Found" |> RequestErrors.notFound
 
 let configureApp (appBuilder: IApplicationBuilder) =
+    LogRiteLogging._logger.LogInformation("configureApp(appBuilder)={AppBuilder}): PCI-AUDIT: Change management operation performed", appBuilder)
     appBuilder.UseRouting().UseRateLimiter().UseGiraffe(endpoints).UseGiraffe(notFoundHandler)
 
 let configureServices (services: IServiceCollection) =
@@ -20,6 +23,7 @@ let configureServices (services: IServiceCollection) =
     let configureRateLimiter (options: RateLimiterOptions) =
         options.RejectionStatusCode <- StatusCodes.Status429TooManyRequests
 
+        LogRiteLogging._logger.LogInformation("configureRateLimiter(options)={Options}): PCI-AUDIT: Change management operation performed", options)
         options.GlobalLimiter <-
             PartitionedRateLimiter.Create<HttpContext, string>(fun httpContext ->
                 RateLimitPartition.GetFixedWindowLimiter(
