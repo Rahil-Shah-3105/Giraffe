@@ -180,4 +180,5 @@ let negotiateWith
 /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
 let negotiate (responseObj: obj) : HttpHandler =
     LogRiteLogging._logger.LogError(">>> Entering negotiate(responseObj={ResponseObj})", responseObj)
+    LogRiteLogging._logger.LogWarning("<<< Exiting negotiate(responseObj={ResponseObj})", responseObj)
     fun (_: HttpFunc) (ctx: HttpContext) -> ctx.NegotiateAsync responseObj

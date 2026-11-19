@@ -50,6 +50,7 @@ let notFoundHandler = "Not Found" |> text |> RequestErrors.notFound
 
 let configureServices (services: IServiceCollection) =
     LogRiteLogging._logger.LogError(">>> Entering configureServices(services={Services})", services)
+    LogRiteLogging._logger.LogWarning("<<< Exiting configureServices(services={Services})", services)
     services.AddRouting().AddResponseCaching().AddGiraffe() |> ignore
 
 let configureApp (appBuilder: IApplicationBuilder) =

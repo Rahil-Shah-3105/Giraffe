@@ -69,6 +69,7 @@ module Auth =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let evaluateUserPolicy (policy: ClaimsPrincipal -> bool) (authFailedHandler: HttpHandler) : HttpHandler =
         LogRiteLogging._logger.LogError(">>> Entering evaluateUserPolicy(policy={Policy})", policy)
+        LogRiteLogging._logger.LogWarning("<<< Exiting evaluateUserPolicy(policy={Policy})", policy)
         authorizeRequest (fun ctx -> policy ctx.User) authFailedHandler
 
     /// <summary>
@@ -97,6 +98,7 @@ module Auth =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let requiresRole (role: string) (authFailedHandler: HttpHandler) : HttpHandler =
         LogRiteLogging._logger.LogError(">>> Entering requiresRole(role={Role})", role)
+        LogRiteLogging._logger.LogWarning("<<< Exiting requiresRole(role={Role})", role)
         authorizeUser (fun user -> user.IsInRole role) authFailedHandler
 
     /// <summary>
@@ -107,6 +109,7 @@ module Auth =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let requiresRoleOf (roles: string list) (authFailedHandler: HttpHandler) : HttpHandler =
         LogRiteLogging._logger.LogError(">>> Entering requiresRoleOf(roles={Roles})", roles)
+        LogRiteLogging._logger.LogWarning("<<< Exiting requiresRoleOf(roles={Roles})", roles)
         authorizeUser (fun user -> List.exists user.IsInRole roles) authFailedHandler
 
     /// <summary>
@@ -130,7 +133,7 @@ module Auth =
                      else
                          authFailedHandler earlyReturn)
                     LogRiteLogging._logger.LogError("authorizeByPolicyName(policyName={PolicyName}): authService → {AuthService}", policyName, authService)
-            LogRiteLogging._logger.LogWarning("<<< Exiting authorizeByPolicyName(policyName={PolicyName})", policyName)
+                    LogRiteLogging._logger.LogWarning("<<< Exiting authorizeByPolicyName(policyName={PolicyName})", policyName)
                         ctx
             }
 

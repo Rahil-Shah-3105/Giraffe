@@ -41,14 +41,17 @@ module Json =
 
             member __.SerializeToBytes(x: 'T) =
                 LogRiteLogging._logger.LogError(">>> Entering SerializeToBytes(x={X})", x)
+                LogRiteLogging._logger.LogWarning("<<< Exiting SerializeToBytes(x={X})", x)
                 JsonSerializer.SerializeToUtf8Bytes(x, options)
 
             member __.SerializeToStreamAsync (x: 'T) (stream: Stream) =
                 LogRiteLogging._logger.LogError(">>> Entering SerializeToStreamAsync(x={X})", x)
+                LogRiteLogging._logger.LogWarning("<<< Exiting SerializeToStreamAsync(x={X})", x)
                 JsonSerializer.SerializeAsync(stream, x, options)
 
             member __.Deserialize<'T>(json: string) : 'T =
                 LogRiteLogging._logger.LogError(">>> Entering Deserialize(string={String})", string)
+                LogRiteLogging._logger.LogWarning("<<< Exiting Deserialize(string={String})", string)
                 JsonSerializer.Deserialize<'T>(json, options)
 
             member __.Deserialize<'T>(bytes: byte array) : 'T =
@@ -56,6 +59,7 @@ module Json =
 
             member __.DeserializeAsync<'T>(stream: Stream) : Task<'T> =
                 LogRiteLogging._logger.LogError(">>> Entering DeserializeAsync(Stream={Stream})", Stream)
+                LogRiteLogging._logger.LogWarning("<<< Exiting DeserializeAsync(Stream={Stream})", Stream)
                 JsonSerializer.DeserializeAsync<'T>(stream, options).AsTask()
 
     module FsharpFriendlySerializer =

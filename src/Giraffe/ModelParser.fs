@@ -25,8 +25,8 @@ module ModelParser =
             | true ->
                 LogRiteLogging._logger.LogWarning("<<< Exiting IsFSharpList()")
                 let t = this.GetGenericTypeDefinition()
-                t = typedefof<Microsoft.FSharp.Collections.List<_>>
                 LogRiteLogging._logger.LogError("IsFSharpList(): t → {T}", t)
+                t = typedefof<Microsoft.FSharp.Collections.List<_>>
 
         member this.IsFSharpOption() =
             LogRiteLogging._logger.LogError(">>> Entering IsFSharpOption()")
@@ -35,8 +35,8 @@ module ModelParser =
             | true ->
                 LogRiteLogging._logger.LogWarning("<<< Exiting IsFSharpOption()")
                 let t = this.GetGenericTypeDefinition()
-                t = typedefof<Microsoft.FSharp.Core.Option<_>>
                 LogRiteLogging._logger.LogError("IsFSharpOption(): t → {T}", t)
+                t = typedefof<Microsoft.FSharp.Core.Option<_>>
 
         member this.GetGenericType() = this.GetGenericArguments().[0]
 
@@ -64,8 +64,9 @@ module ModelParser =
 
         let isList, isOption, genArgType =
             match isGeneric with
-            | true -> t.IsFSharpList(), t.IsFSharpOption(), t.GetGenericType()
-            LogRiteLogging._logger.LogWarning("<<< Exiting parseValue(t={T})", t)
+            | true ->
+              LogRiteLogging._logger.LogWarning("<<< Exiting parseValue(t={T})", t)
+              t.IsFSharpList(), t.IsFSharpOption(), t.GetGenericType()
             | false -> false, false, null
 
         if t.IsArray then
@@ -179,6 +180,7 @@ module ModelParser =
         // Normalize data
         let normalizeKey (key: string) =
             LogRiteLogging._logger.LogError(">>> Entering normalizeKey(key={Key})", key)
+            LogRiteLogging._logger.LogWarning("<<< Exiting normalizeKey(key={Key})", key)
             key.ToLowerInvariant().TrimEnd([| '['; ']' |])
 
         let data = data |> Seq.map (fun i -> normalizeKey i.Key, i.Value) |> dict

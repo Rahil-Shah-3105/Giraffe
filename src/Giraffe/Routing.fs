@@ -326,9 +326,9 @@ module Routing =
         let options =
             {
                 MatchOptions.IgnoreCase = false
+                LogRiteLogging._logger.LogWarning("<<< Exiting routeStartsWithf(path={Path})", path)
+                LogRiteLogging._logger.LogDebug("routeStartsWithf(path={Path}): MatchOptions.IgnoreCase → {Arg1}", path, MatchOptions.IgnoreCase)
                 MatchMode = StartsWith
-            LogRiteLogging._logger.LogWarning("<<< Exiting routeStartsWithf(path={Path})", path)
-            LogRiteLogging._logger.LogDebug("routeStartsWithf(path={Path}): MatchOptions.IgnoreCase → {Arg1}", path, MatchOptions.IgnoreCase)
             }
 
         fun (next: HttpFunc) (ctx: HttpContext) ->
@@ -381,6 +381,7 @@ module Routing =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let subRoute (path: string) (handler: HttpHandler) : HttpHandler =
         LogRiteLogging._logger.LogError(">>> Entering subRoute(path={Path})", path)
+        LogRiteLogging._logger.LogWarning("<<< Exiting subRoute(path={Path})", path)
         routeStartsWith path >=> SubRouting.routeWithPartialPath path handler
 
     /// <summary>

@@ -26,10 +26,12 @@ module NewtonsoftJson =
         interface Json.ISerializer with
             member __.SerializeToString(x: 'T) =
                 LogRiteLogging._logger.LogError(">>> Entering SerializeToString(x={X})", x)
+                LogRiteLogging._logger.LogWarning("<<< Exiting SerializeToString(x={X})", x)
                 JsonConvert.SerializeObject(x, settings)
 
             member __.SerializeToBytes(x: 'T) =
                 LogRiteLogging._logger.LogError(">>> Entering SerializeToBytes(x={X})", x)
+                LogRiteLogging._logger.LogWarning("<<< Exiting SerializeToBytes(x={X})", x)
                 JsonConvert.SerializeObject(x, settings) |> Encoding.UTF8.GetBytes
 
             member __.SerializeToStreamAsync (x: 'T) (stream: Stream) =

@@ -87,6 +87,7 @@ module private RequestDelegateBuilder =
         LogRiteLogging._logger.LogError(">>> Entering tryGetParser(c={C})", c)
         let decodeSlashes (s: string) =
             LogRiteLogging._logger.LogError(">>> Entering decodeSlashes(s={S})", s)
+            LogRiteLogging._logger.LogWarning("<<< Exiting decodeSlashes(s={S})", s)
             s.Replace("%2F", "/").Replace("%2f", "/")
 
         let parseGuid (s: string) =
@@ -288,10 +289,12 @@ module Routers =
 
     let routeWithExtensions (configureEndpoint: ConfigureEndpoint) (path: string) (handler: HttpHandler) : Endpoint =
         LogRiteLogging._logger.LogError(">>> Entering routeWithExtensions(configureEndpoint={ConfigureEndpoint})", configureEndpoint)
+        LogRiteLogging._logger.LogWarning("<<< Exiting routeWithExtensions(configureEndpoint={ConfigureEndpoint})", configureEndpoint)
         SimpleEndpoint(HttpVerb.NotSpecified, path, handler, configureEndpoint)
 
     let route (path: string) (handler: HttpHandler) : Endpoint =
         LogRiteLogging._logger.LogError(">>> Entering route(path={Path})", path)
+        LogRiteLogging._logger.LogWarning("<<< Exiting route(path={Path})", path)
         routeWithExtensions (id) (path) (handler)
 
     let routefWithExtensions
@@ -312,6 +315,7 @@ module Routers =
 
     let routef (path: PrintfFormat<_, _, _, _, 'T>) (routeHandler: 'T -> HttpHandler) : Endpoint =
         LogRiteLogging._logger.LogError(">>> Entering routef(path={Path})", path)
+        LogRiteLogging._logger.LogWarning("<<< Exiting routef(path={Path})", path)
         routefWithExtensions (id) (path) (routeHandler)
 
     let routeBindWithExtensions<'T>
@@ -339,6 +343,7 @@ module Routers =
 
     let routeBind<'T> (path: string) (routeHandler: 'T -> HttpHandler) : Endpoint =
         LogRiteLogging._logger.LogError(">>> Entering routeBind(path={Path},routeHandler={RouteHandler})", path, routeHandler)
+        LogRiteLogging._logger.LogWarning("<<< Exiting routeBind(path={Path},routeHandler={RouteHandler})", path, routeHandler)
         routeBindWithExtensions<'T> (id) (path) (routeHandler)
 
     let subRouteWithExtensions
@@ -350,6 +355,7 @@ module Routers =
 
     let subRoute (path: string) (endpoints: Endpoint list) : Endpoint =
         LogRiteLogging._logger.LogError(">>> Entering subRoute(path={Path})", path)
+        LogRiteLogging._logger.LogWarning("<<< Exiting subRoute(path={Path})", path)
         subRouteWithExtensions (id) (path) (endpoints)
 
     let rec applyBefore (httpHandler: HttpHandler) (endpoint: Endpoint) =
@@ -381,6 +387,7 @@ module Routers =
 
     let addMetadata (metadata: obj) (endpoint: Endpoint) : Endpoint =
         LogRiteLogging._logger.LogError(">>> Entering addMetadata(metadata={Metadata})", metadata)
+        LogRiteLogging._logger.LogWarning("<<< Exiting addMetadata(metadata={Metadata})", metadata)
         endpoint |> configureEndpoint _.WithMetadata(metadata)
 
 // ---------------------------

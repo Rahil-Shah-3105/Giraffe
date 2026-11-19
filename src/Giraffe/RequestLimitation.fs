@@ -107,6 +107,7 @@ let hasAnyContentTypes (contentTypes: string list) (optionalErrorHandler: Option
 /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
 let hasContentType (contentType: string) (optionalErrorHandler: OptionalErrorHandlers) =
     LogRiteLogging._logger.LogError(">>> Entering hasContentType(contentType={ContentType})", contentType)
+    LogRiteLogging._logger.LogWarning("<<< Exiting hasContentType(contentType={ContentType})", contentType)
     hasAnyContentTypes [ contentType ] (optionalErrorHandler: OptionalErrorHandlers)
 
 /// <summary>

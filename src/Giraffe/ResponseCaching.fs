@@ -26,6 +26,7 @@ module ResponseCaching =
 
     let inline private cacheHeader isPublic duration =
         LogRiteLogging._logger.LogError(">>> Entering cacheHeader(isPublic={IsPublic},duration={Duration})", isPublic, duration)
+        LogRiteLogging._logger.LogWarning("<<< Exiting cacheHeader(isPublic={IsPublic},duration={Duration})", isPublic, duration)
         CacheControlHeaderValue(Public = isPublic, MaxAge = Nullable duration)
 
     /// <summary>
@@ -87,6 +88,7 @@ module ResponseCaching =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let privateResponseCaching (seconds: int) (vary: string option) : HttpHandler =
         LogRiteLogging._logger.LogError(">>> Entering privateResponseCaching(seconds={Seconds})", seconds)
+        LogRiteLogging._logger.LogWarning("<<< Exiting privateResponseCaching(seconds={Seconds})", seconds)
         responseCaching (Private(TimeSpan.FromSeconds(float seconds))) vary None
 
     /// <summary>
@@ -101,4 +103,5 @@ module ResponseCaching =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let publicResponseCaching (seconds: int) (vary: string option) : HttpHandler =
         LogRiteLogging._logger.LogError(">>> Entering publicResponseCaching(seconds={Seconds})", seconds)
+        LogRiteLogging._logger.LogWarning("<<< Exiting publicResponseCaching(seconds={Seconds})", seconds)
         responseCaching (Public(TimeSpan.FromSeconds(float seconds))) vary None

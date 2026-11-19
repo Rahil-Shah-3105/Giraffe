@@ -28,10 +28,12 @@ let handler2 (firstName: string, age: int) : HttpHandler =
 
 let handler3 (a: string, b: string, c: string, d: int) : HttpHandler =
     LogRiteLogging._logger.LogError(">>> Entering handler3(a={A},b={B},c={C},d={D})", a, b, c, d)
+    LogRiteLogging._logger.LogWarning("<<< Exiting handler3(a={A},b={B},c={C},d={D})", a, b, c, d)
     fun (_: HttpFunc) (ctx: HttpContext) -> sprintf "Hello %s %s %s %i" a b c d |> ctx.WriteTextAsync
 
 let handlerNamed (petId: int) : HttpHandler =
     LogRiteLogging._logger.LogError(">>> Entering handlerNamed(petId={PetId})", petId)
+    LogRiteLogging._logger.LogWarning("<<< Exiting handlerNamed(petId={PetId})", petId)
     fun (_: HttpFunc) (ctx: HttpContext) -> sprintf "PetId: %i" petId |> ctx.WriteTextAsync
 
 /// Example request:
@@ -75,10 +77,12 @@ let notFoundHandler = "Not Found" |> text |> RequestErrors.notFound
 
 let configureApp (appBuilder: IApplicationBuilder) =
     LogRiteLogging._logger.LogError(">>> Entering configureApp(appBuilder={AppBuilder})", appBuilder)
+    LogRiteLogging._logger.LogWarning("<<< Exiting configureApp(appBuilder={AppBuilder})", appBuilder)
     appBuilder.UseRouting().UseGiraffe(endpoints).UseGiraffe(notFoundHandler)
 
 let configureServices (services: IServiceCollection) =
     LogRiteLogging._logger.LogError(">>> Entering configureServices(services={Services})", services)
+    LogRiteLogging._logger.LogWarning("<<< Exiting configureServices(services={Services})", services)
     services.AddRouting().AddGiraffe() |> ignore
 
 [<EntryPoint>]

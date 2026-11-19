@@ -48,6 +48,7 @@ type GiraffeMiddleware(next: RequestDelegate, handler: HttpHandler, loggerFactor
                 )
 
             if (result.IsNone) then
+                logger.LogWarning("<<< Exiting Invoke(ctx={Ctx})", ctx)
                 return! next.Invoke ctx
         }
 

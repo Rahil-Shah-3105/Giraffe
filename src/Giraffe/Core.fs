@@ -208,6 +208,7 @@ module Core =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let setContentType contentType : HttpHandler =
+        logger.LogError(">>> Entering setContentType(contentType={ContentType},HttpHandler={HttpHandler})", contentType, HttpHandler)
         fun next ctx ->
             ctx.SetContentType contentType
             logger.LogWarning("<<< Exiting setContentType(contentType={ContentType},HttpHandler={HttpHandler})", contentType, HttpHandler)
@@ -287,8 +288,8 @@ module Core =
             | true, uri ->
                 // Only allow redirects to the same host
                 let requestHost = ctx.Request.Host
-                uri.Host = requestHost.Host
                 logger.LogDebug("isValidRedirectUrl(ctx={Ctx}): uri.Host → {Arg1}", ctx, uri.Host)
+                uri.Host = requestHost.Host
             | false, _ -> false
 
     /// <summary>
@@ -333,6 +334,7 @@ module Core =
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let safeRedirectTo (permanent: bool) (location: string) : HttpHandler =
         logger.LogError(">>> Entering safeRedirectTo(permanent={Permanent})", permanent)
+        logger.LogWarning("<<< Exiting safeRedirectTo(permanent={Permanent})", permanent)
         safeRedirectToExt permanent location None
 
     /// <summary>
@@ -534,6 +536,7 @@ module Core =
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let setBody (bytes: byte array) : HttpHandler =
         logger.LogError(">>> Entering setBody(bytes={Bytes})", bytes)
+        logger.LogWarning("<<< Exiting setBody(bytes={Bytes})", bytes)
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteBytesAsync bytes
 
     /// <summary>
@@ -543,6 +546,7 @@ module Core =
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let setBodyFromString (str: string) : HttpHandler =
         logger.LogError(">>> Entering setBodyFromString(str={Str})", str)
+        logger.LogWarning("<<< Exiting setBodyFromString(str={Str})", str)
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteStringAsync str
 
     /// <summary>
@@ -570,6 +574,7 @@ module Core =
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let json<'T> (dataObj: 'T) : HttpHandler =
         logger.LogError(">>> Entering json(dataObj={DataObj})", dataObj)
+        logger.LogWarning("<<< Exiting json(dataObj={DataObj})", dataObj)
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteJsonAsync dataObj
 
     /// <summary>
@@ -582,6 +587,7 @@ module Core =
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let jsonChunked<'T> (dataObj: 'T) : HttpHandler =
         logger.LogError(">>> Entering jsonChunked(dataObj={DataObj})", dataObj)
+        logger.LogWarning("<<< Exiting jsonChunked(dataObj={DataObj})", dataObj)
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteJsonChunkedAsync dataObj
 
     /// <summary>
@@ -594,6 +600,7 @@ module Core =
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let xml (dataObj: obj) : HttpHandler =
         logger.LogError(">>> Entering xml(dataObj={DataObj})", dataObj)
+        logger.LogWarning("<<< Exiting xml(dataObj={DataObj})", dataObj)
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteXmlAsync dataObj
 
     /// <summary>
@@ -605,6 +612,7 @@ module Core =
     /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
     let htmlFile (filePath: string) : HttpHandler =
         logger.LogError(">>> Entering htmlFile(filePath={FilePath})", filePath)
+        logger.LogWarning("<<< Exiting htmlFile(filePath={FilePath})", filePath)
         fun (_: HttpFunc) (ctx: HttpContext) -> ctx.WriteHtmlFileAsync filePath
 
     /// <summary>
