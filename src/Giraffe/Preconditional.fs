@@ -32,6 +32,7 @@ type HttpContext with
 
     member private this.IsHeadOrGetRequest() =
         LogRiteLogging._logger.LogError(">>> Entering IsHeadOrGetRequest()")
+        LogRiteLogging._logger.LogWarning("<<< Exiting IsHeadOrGetRequest()")
         HttpMethods.IsHead this.Request.Method || HttpMethods.IsGet this.Request.Method
 
     member private this.ValidateIfMatch (eTag: EntityTagHeaderValue option) (requestHeaders: RequestHeaders) =

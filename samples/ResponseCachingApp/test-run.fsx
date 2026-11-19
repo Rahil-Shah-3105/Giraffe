@@ -26,6 +26,7 @@ let queryParams2: QueryParams = [ ("query1", "c"); ("query2", "d") ]
 
 let waitForOneSecond () =
     LogRiteLogging._logger.LogError(">>> Entering waitForOneSecond()")
+    LogRiteLogging._logger.LogWarning("<<< Exiting waitForOneSecond()")
     do Threading.Thread.Sleep(TimeSpan.FromSeconds 1)
 
 let makeRequest (Url url: Url) (queryParams: QueryParams) =

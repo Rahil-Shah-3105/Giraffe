@@ -25,6 +25,7 @@ module Helpers =
     /// <returns>Returns None if the string was null or empty otherwise Some string.</returns>
     let inline strOption (str: string) =
         LogRiteLogging._logger.LogError(">>> Entering strOption(str={Str})", str)
+        LogRiteLogging._logger.LogWarning("<<< Exiting strOption(str={Str})", str)
         if String.IsNullOrEmpty str then None else Some str
 
     /// <summary>
