@@ -27,6 +27,7 @@ type GiraffeMiddleware(next: RequestDelegate, handler: HttpHandler, loggerFactor
     let func: HttpFunc = handler earlyReturn
 
     member __.Invoke(ctx: HttpContext) =
+        logger.LogError(">>> Entering Invoke(ctx={Ctx})", ctx)
         task {
             let start = System.Diagnostics.Stopwatch.GetTimestamp()
 

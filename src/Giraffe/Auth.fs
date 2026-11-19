@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<AutoOpen>]
 module Auth =
     open System
@@ -16,7 +18,9 @@ module Auth =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let challenge (authScheme: string) : HttpHandler =
+        LogRiteLogging._logger.LogError(">>> Entering challenge(authScheme={AuthScheme})", authScheme)
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            LogRiteLogging._logger.LogWarning("<<< Exiting challenge(authScheme={AuthScheme})", authScheme)
             task {
                 do! ctx.ChallengeAsync authScheme
                 return! next ctx
@@ -30,7 +34,9 @@ module Auth =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let signOut (authScheme: string) : HttpHandler =
+        LogRiteLogging._logger.LogError(">>> Entering signOut(authScheme={AuthScheme})", authScheme)
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            LogRiteLogging._logger.LogWarning("<<< Exiting signOut(authScheme={AuthScheme})", authScheme)
             task {
                 do! ctx.SignOutAsync authScheme
                 return! next ctx
@@ -45,7 +51,9 @@ module Auth =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let authorizeRequest (predicate: HttpContext -> bool) (authFailedHandler: HttpHandler) : HttpHandler =
+        LogRiteLogging._logger.LogError(">>> Entering authorizeRequest(predicate={Predicate})", predicate)
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            LogRiteLogging._logger.LogWarning("<<< Exiting authorizeRequest(predicate={Predicate})", predicate)
             (if predicate ctx then
                  next
              else
@@ -60,6 +68,7 @@ module Auth =
     /// <param name="authFailedHandler">A <see cref="HttpHandler"/> function which will be executed when the policy returns false.</param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let evaluateUserPolicy (policy: ClaimsPrincipal -> bool) (authFailedHandler: HttpHandler) : HttpHandler =
+        LogRiteLogging._logger.LogError(">>> Entering evaluateUserPolicy(policy={Policy})", policy)
         authorizeRequest (fun ctx -> policy ctx.User) authFailedHandler
 
     /// <summary>
@@ -74,6 +83,8 @@ module Auth =
     /// <param name="authFailedHandler">A <see cref="HttpHandler"/> function which will be executed when authentication failed.</param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let requiresAuthentication (authFailedHandler: HttpHandler) : HttpHandler =
+        LogRiteLogging._logger.LogError(">>> Entering requiresAuthentication(authFailedHandler={AuthFailedHandler})", authFailedHandler)
+        LogRiteLogging._logger.LogWarning("<<< Exiting requiresAuthentication(authFailedHandler={AuthFailedHandler})", authFailedHandler)
         authorizeUser
             (fun user -> isNotNull user && isNotNull user.Identity && user.Identity.IsAuthenticated)
             authFailedHandler
@@ -85,6 +96,7 @@ module Auth =
     /// <param name="authFailedHandler">A <see cref="HttpHandler"/> function which will be executed when validation fails.</param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let requiresRole (role: string) (authFailedHandler: HttpHandler) : HttpHandler =
+        LogRiteLogging._logger.LogError(">>> Entering requiresRole(role={Role})", role)
         authorizeUser (fun user -> user.IsInRole role) authFailedHandler
 
     /// <summary>
@@ -94,6 +106,7 @@ module Auth =
     /// <param name="authFailedHandler">A <see cref="HttpHandler"/> function which will be executed when validation fails.</param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let requiresRoleOf (roles: string list) (authFailedHandler: HttpHandler) : HttpHandler =
+        LogRiteLogging._logger.LogError(">>> Entering requiresRoleOf(roles={Roles})", roles)
         authorizeUser (fun user -> List.exists user.IsInRole roles) authFailedHandler
 
     /// <summary>
@@ -105,6 +118,7 @@ module Auth =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let authorizeByPolicyName (policyName: string) (authFailedHandler: HttpHandler) : HttpHandler =
+        LogRiteLogging._logger.LogError(">>> Entering authorizeByPolicyName(policyName={PolicyName})", policyName)
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
                 let authService = ctx.GetService<IAuthorizationService>()
@@ -115,6 +129,8 @@ module Auth =
                          next
                      else
                          authFailedHandler earlyReturn)
+                    LogRiteLogging._logger.LogError("authorizeByPolicyName(policyName={PolicyName}): authService → {AuthService}", policyName, authService)
+            LogRiteLogging._logger.LogWarning("<<< Exiting authorizeByPolicyName(policyName={PolicyName})", policyName)
                         ctx
             }
 
@@ -127,6 +143,7 @@ module Auth =
     /// <param name="ctx"></param>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let authorizeByPolicy (policy: AuthorizationPolicy) (authFailedHandler: HttpHandler) : HttpHandler =
+        LogRiteLogging._logger.LogError(">>> Entering authorizeByPolicy(policy={Policy})", policy)
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
                 let authService = ctx.GetService<IAuthorizationService>()

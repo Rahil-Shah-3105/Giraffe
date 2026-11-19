@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 /// <summary>
 /// Module for parsing models from a generic data set.
 /// </summary>
@@ -17,46 +19,61 @@ module ModelParser =
         member this.IsGeneric() = this.GetTypeInfo().IsGenericType
 
         member this.IsFSharpList() =
+            LogRiteLogging._logger.LogError(">>> Entering IsFSharpList()")
             match this.IsGeneric() with
             | false -> false
             | true ->
+                LogRiteLogging._logger.LogWarning("<<< Exiting IsFSharpList()")
                 let t = this.GetGenericTypeDefinition()
                 t = typedefof<Microsoft.FSharp.Collections.List<_>>
+                LogRiteLogging._logger.LogError("IsFSharpList(): t → {T}", t)
 
         member this.IsFSharpOption() =
+            LogRiteLogging._logger.LogError(">>> Entering IsFSharpOption()")
             match this.IsGeneric() with
             | false -> false
             | true ->
+                LogRiteLogging._logger.LogWarning("<<< Exiting IsFSharpOption()")
                 let t = this.GetGenericTypeDefinition()
                 t = typedefof<Microsoft.FSharp.Core.Option<_>>
+                LogRiteLogging._logger.LogError("IsFSharpOption(): t → {T}", t)
 
         member this.GetGenericType() = this.GetGenericArguments().[0]
 
         member this.MakeNoneCase() =
+            LogRiteLogging._logger.LogError(">>> Entering MakeNoneCase()")
             let cases = FSharpType.GetUnionCases this
+            LogRiteLogging._logger.LogWarning("<<< Exiting MakeNoneCase()")
             FSharpValue.MakeUnion(cases.[0], [||])
 
         member this.MakeSomeCase(value: obj) =
+            LogRiteLogging._logger.LogError(">>> Entering MakeSomeCase(value={Value})", value)
             let cases = FSharpType.GetUnionCases this
+            LogRiteLogging._logger.LogWarning("<<< Exiting MakeSomeCase(value={Value})", value)
             FSharpValue.MakeUnion(cases.[1], [| value |])
 
 
 
     /// Returns either a successfully parsed object `'T` or a `string` error message containing the parsing error.
     let rec private parseValue (t: Type) (rawValues: StringValues) (culture: CultureInfo) : Result<obj, string> =
+        LogRiteLogging._logger.LogError(">>> Entering parseValue(t={T})", t)
 
         // First establish some basic type information:
         let isGeneric = t.IsGeneric()
+        LogRiteLogging._logger.LogError("parseValue(t={T}): isGeneric → {IsGeneric}", t, isGeneric)
 
         let isList, isOption, genArgType =
             match isGeneric with
             | true -> t.IsFSharpList(), t.IsFSharpOption(), t.GetGenericType()
+            LogRiteLogging._logger.LogWarning("<<< Exiting parseValue(t={T})", t)
             | false -> false, false, null
 
         if t.IsArray then
             let arrArgType = t.GetElementType()
+            LogRiteLogging._logger.LogError("parseValue(t={T}): arrArgType → {ArrArgType}", t, arrArgType)
             let arrLen = rawValues.Count
             let arr = Array.CreateInstance(arrArgType, arrLen)
+            LogRiteLogging._logger.LogError("parseValue(t={T}): arr → {Arr}", t, arr)
 
             if arrLen = 0 then
                 Ok(arr :> obj)
@@ -84,6 +101,7 @@ module ModelParser =
         else if isList then
             let cases = FSharpType.GetUnionCases t
             let emptyList = FSharpValue.MakeUnion(cases.[0], [||])
+            LogRiteLogging._logger.LogError("parseValue(t={T}): emptyList → {EmptyList}", t, emptyList)
 
             if rawValues.Count = 0 then
                 Ok emptyList
@@ -108,6 +126,7 @@ module ModelParser =
                 | None -> Ok items
         else if isGeneric then
             let result = parseValue genArgType rawValues culture
+            LogRiteLogging._logger.LogError("parseValue(t={T}): result → {Result}", t, result)
 
             match result with
             | Error err -> Error err
@@ -121,6 +140,7 @@ module ModelParser =
                     |> Ok
         else if FSharpType.IsUnion t then
             let unionName = rawValues.ToString()
+            LogRiteLogging._logger.LogError("parseValue(t={T}): unionName → {UnionName}", t, unionName)
             let cases = FSharpType.GetUnionCases t
 
             if String.IsNullOrWhiteSpace unionName then
@@ -142,6 +162,7 @@ module ModelParser =
                 |> TypeDescriptor.GetConverter
 
             let rawValue = rawValues.ToString()
+            LogRiteLogging._logger.LogError("parseValue(t={T}): rawValue → {RawValue}", t, rawValue)
 
             try
                 converter.ConvertFromString(null, culture, rawValue) |> Ok
@@ -157,6 +178,7 @@ module ModelParser =
         : Result<'T, string> =
         // Normalize data
         let normalizeKey (key: string) =
+            LogRiteLogging._logger.LogError(">>> Entering normalizeKey(key={Key})", key)
             key.ToLowerInvariant().TrimEnd([| '['; ']' |])
 
         let data = data |> Seq.map (fun i -> normalizeKey i.Key, i.Value) |> dict
@@ -337,8 +359,11 @@ module ModelParser =
     /// <typeparam name="'T"></typeparam>
     /// <returns>If all properties were able to successfully parse then Some 'T will be returned, otherwise None.</returns>
     let tryParse<'T> (culture: CultureInfo option) (data: IDictionary<string, StringValues>) =
+        LogRiteLogging._logger.LogError(">>> Entering tryParse(culture={Culture},data={Data})", culture, data)
         let model = Activator.CreateInstance<'T>()
+        LogRiteLogging._logger.LogError("tryParse(culture={Culture},data={Data}): model → {Model}", culture, data, model)
 
+        LogRiteLogging._logger.LogWarning("<<< Exiting tryParse(culture={Culture},data={Data})", culture, data)
         parseModel<'T> model culture data true
 
     /// <summary>
@@ -349,10 +374,14 @@ module ModelParser =
     /// <typeparam name="'T"></typeparam>
     /// <returns>An instance of type 'T. Not all properties might be set. Null checks are required for reference types.</returns>
     let parse<'T> (culture: CultureInfo option) (data: IDictionary<string, StringValues>) =
+        LogRiteLogging._logger.LogError(">>> Entering parse(culture={Culture},data={Data})", culture, data)
         let model = Activator.CreateInstance<'T>()
 
+        LogRiteLogging._logger.LogError("parse(culture={Culture},data={Data}): model → {Model}", culture, data, model)
         let result = parseModel<'T> model culture data false
+        LogRiteLogging._logger.LogError("parse(culture={Culture},data={Data}): result → {Result}", culture, data, result)
 
+        LogRiteLogging._logger.LogWarning("<<< Exiting parse(culture={Culture},data={Data})", culture, data)
         match result with
         | Ok model -> model
         | Error msg -> failwithf "Unexpected error during non-strict model parsing: %s" msg

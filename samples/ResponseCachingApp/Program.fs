@@ -5,10 +5,14 @@ open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
 open Giraffe
 open Giraffe.EndpointRouting
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 let expensiveOperation () : DateTime =
+    LogRiteLogging._logger.LogError(">>> Entering expensiveOperation()")
     let fiveSeconds = 5000 // ms
     Threading.Thread.Sleep fiveSeconds
+    LogRiteLogging._logger.LogWarning("<<< Exiting expensiveOperation()")
     DateTime.Now
 
 let dateTimeHandler: HttpHandler =
@@ -45,9 +49,12 @@ let endpoints: Endpoint list =
 let notFoundHandler = "Not Found" |> text |> RequestErrors.notFound
 
 let configureServices (services: IServiceCollection) =
+    LogRiteLogging._logger.LogError(">>> Entering configureServices(services={Services})", services)
     services.AddRouting().AddResponseCaching().AddGiraffe() |> ignore
 
 let configureApp (appBuilder: IApplicationBuilder) =
+    LogRiteLogging._logger.LogError(">>> Entering configureApp(appBuilder={AppBuilder})", appBuilder)
+    LogRiteLogging._logger.LogWarning("<<< Exiting configureApp(appBuilder={AppBuilder})", appBuilder)
     appBuilder
         .UseRouting()
         .UseResponseCaching()
@@ -56,10 +63,13 @@ let configureApp (appBuilder: IApplicationBuilder) =
 
 [<EntryPoint>]
 let main args =
+    LogRiteLogging._logger.LogError(">>> Entering main(args={Args})", args)
     let builder = WebApplication.CreateBuilder(args)
     configureServices builder.Services
+    LogRiteLogging._logger.LogError("main(args={Args}): builder → {Builder}", args, builder)
 
     let app = builder.Build()
+    LogRiteLogging._logger.LogError("main(args={Args}): app → {App}", args, app)
 
     if app.Environment.IsDevelopment() then
         app.UseDeveloperExceptionPage() |> ignore
@@ -67,4 +77,5 @@ let main args =
     configureApp app
     app.Run()
 
+    LogRiteLogging._logger.LogWarning("<<< Exiting main(args={Args})", args)
     0

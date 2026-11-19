@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<RequireQualifiedAccess>]
 module Xml =
     /// <summary>
@@ -31,6 +33,7 @@ module SystemXml =
 
         interface Xml.ISerializer with
             member __.Serialize(o: obj) =
+                LogRiteLogging._logger.LogError(">>> Entering Serialize(o={O})", o)
                 use stream =
                     if rmsManager.Settings.ThrowExceptionOnToArray then
                         new MemoryStream()
@@ -38,13 +41,19 @@ module SystemXml =
                         rmsManager.GetStream("giraffe-xml-serialize")
 
                 use writer = XmlWriter.Create(stream, settings)
+                LogRiteLogging._logger.LogError("Serialize(o={O}): writer → {Writer}", o, writer)
                 let serializer = XmlSerializer(o.GetType())
+                LogRiteLogging._logger.LogError("Serialize(o={O}): serializer → {Serializer}", o, serializer)
                 serializer.Serialize(writer, o)
+                LogRiteLogging._logger.LogWarning("<<< Exiting Serialize(o={O})", o)
                 stream.ToArray()
 
             member __.Deserialize<'T>(xml: string) =
+                LogRiteLogging._logger.LogError(">>> Entering Deserialize(string={String})", string)
                 let serializer = XmlSerializer(typeof<'T>)
                 use stringReader = new StringReader(xml)
+                LogRiteLogging._logger.LogError("Deserialize(string={String}): stringReader → {StringReader}", string, stringReader)
+                LogRiteLogging._logger.LogError("Deserialize(string={String}): serializer → {Serializer}", string, serializer)
                 // Secure XML parsing: disable DTD processing and external entities to prevent XXE attacks
                 let xmlReaderSettings =
                     new XmlReaderSettings(
@@ -54,4 +63,6 @@ module SystemXml =
                     ) // 1MB limit
 
                 use xmlReader = XmlReader.Create(stringReader, xmlReaderSettings)
+                LogRiteLogging._logger.LogError("Deserialize(string={String}): xmlReader → {XmlReader}", string, xmlReader)
+                LogRiteLogging._logger.LogWarning("<<< Exiting Deserialize(string={String})", string)
                 serializer.Deserialize xmlReader :?> 'T

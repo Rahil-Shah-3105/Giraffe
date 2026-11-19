@@ -10,7 +10,9 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Http.Extensions
 open Microsoft.Extensions.Primitives
 open Microsoft.Net.Http.Headers
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 // ---------------------------
 // HTTP Range parsing
 // ---------------------------
@@ -37,6 +39,7 @@ module internal RangeHelper =
     /// https://github.com/aspnet/StaticFiles/blob/dev/shared/Microsoft.AspNetCore.RangeHelper.Sources/RangeHelper.cs
     ///
     let parseRange (request: HttpRequest) =
+        LogRiteLogging._logger.LogError(">>> Entering parseRange(request={Request})", request)
         let rawRangeHeader = request.Headers.[HeaderNames.Range]
 
         if StringValues.IsNullOrEmpty(rawRangeHeader) then
@@ -46,9 +49,11 @@ module internal RangeHelper =
         // very strange ranges (e.g. each byte separately, overlapping ranges, etc.) that could negatively
         // impact the server. Ignore the header and serve the response normally.
         else if (rawRangeHeader.Count > 1 || rawRangeHeader.[0].IndexOf(',') >= 0) then
+            LogRiteLogging._logger.LogWarning("<<< Exiting parseRange(request={Request})", request)
             None
         else
             let range = request.GetTypedHeaders().Range
+            LogRiteLogging._logger.LogError("parseRange(request={Request}): range → {Range}", request, range)
 
             if isNull range then None
             else if isNull range.Ranges then None
@@ -61,13 +66,16 @@ module internal RangeHelper =
     /// <param name="contentLength"></param>
     /// <returns></returns>
     let validateRanges (ranges: ICollection<RangeItemHeaderValue>) (contentLength: int64) =
+        LogRiteLogging._logger.LogError(">>> Entering validateRanges(ranges={Ranges})", ranges)
         if ranges.Count.Equals 0 then
+            LogRiteLogging._logger.LogWarning("<<< Exiting validateRanges(ranges={Ranges})", ranges)
             Error "No ranges provided."
         else if contentLength.Equals 0 then
             Error "Range exceeds content length (which is zero)."
         else
             // Normalize the range
             let range = ranges.SingleOrDefault()
+            LogRiteLogging._logger.LogError("validateRanges(ranges={Ranges}): range → {Range}", ranges, range)
 
             match range.From.HasValue with
             | true ->
@@ -86,6 +94,8 @@ module internal RangeHelper =
                             End = endOfRange
                         }
             | false ->
+                LogRiteLogging._logger.LogDebug("validateRanges(ranges={Ranges}): Start → {Start}", ranges, Start)
+                LogRiteLogging._logger.LogDebug("validateRanges(ranges={Ranges}): End → {End}", ranges, End)
                 // Suffix range "-X" e.g. the last X bytes, resolve
                 if range.To.Value.Equals 0 then
                     Error "Range end value is zero."

@@ -10,7 +10,9 @@ open Microsoft.AspNetCore.Routing
 open Microsoft.FSharp.Reflection
 open FSharp.Core
 open Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 module RouteTemplateBuilder =
     // We use this regex route constraint to be compatible with Giraffe's default router,
     // which supports ShortGuid's.
@@ -22,8 +24,11 @@ module RouteTemplateBuilder =
     let private shortIdPattern = "([-_0-9A-Za-z]{{10}}[048AEIMQUYcgkosw])"
 
     let private getConstraint (i: int) (c: char) (name: string option) =
+        LogRiteLogging._logger.LogError(">>> Entering getConstraint(i={I})", i)
         let name = Option.defaultValue (sprintf "%c%i" c i) name
+        LogRiteLogging._logger.LogError("getConstraint(i={I}): name → {Name}", i, name)
 
+        LogRiteLogging._logger.LogWarning("<<< Exiting getConstraint(i={I})", i)
         match c with
         | 'b' -> name, sprintf "{%s:bool}" name // bool
         | 'c' -> name, sprintf "{%s:length(1)}" name // char
@@ -36,15 +41,19 @@ module RouteTemplateBuilder =
         | _ -> failwithf "%c is not a supported route format character." c
 
     let convertToRouteTemplate (path: PrintfFormat<_, _, _, _, 'T>) =
+        LogRiteLogging._logger.LogError(">>> Entering convertToRouteTemplate(path={Path})", path)
         let rec convert (i: int) (chars: char list) =
+            LogRiteLogging._logger.LogError(">>> Entering convert(i={I})", i)
             match chars with
             | '%' :: '%' :: tail ->
+                LogRiteLogging._logger.LogWarning("<<< Exiting convert(i={I})", i)
                 let template, mappings = convert i tail
                 "%" + template, mappings
             | '%' :: c :: tail ->
                 match tail with
                 | ':' :: stail ->
                     let splitIndex = stail |> List.tryFindIndex (fun c -> c = '/')
+                    LogRiteLogging._logger.LogError("convert(i={I}): splitIndex → {SplitIndex}", i, splitIndex)
 
                     match splitIndex with
                     | Some splitIndex ->
@@ -75,10 +84,14 @@ module RouteTemplateBuilder =
 module private RequestDelegateBuilder =
 
     let private tryGetParser (c: char) =
+        LogRiteLogging._logger.LogError(">>> Entering tryGetParser(c={C})", c)
         let decodeSlashes (s: string) =
+            LogRiteLogging._logger.LogError(">>> Entering decodeSlashes(s={S})", s)
             s.Replace("%2F", "/").Replace("%2f", "/")
 
         let parseGuid (s: string) =
+            LogRiteLogging._logger.LogError(">>> Entering parseGuid(s={S})", s)
+            LogRiteLogging._logger.LogWarning("<<< Exiting parseGuid(s={S})", s)
             match s.Length with
             | 22 -> ShortGuid.toGuid s
             | _ -> Guid s
@@ -95,6 +108,7 @@ module private RequestDelegateBuilder =
         | _ -> None
 
     let private convertToTuple (mappings: (string * char) list) (routeData: RouteData) =
+        LogRiteLogging._logger.LogError(">>> Entering convertToTuple(mappings={Mappings})", mappings)
         let values =
             mappings
             |> List.map (fun (placeholderName, formatChar) ->
@@ -111,7 +125,9 @@ module private RequestDelegateBuilder =
             | 1 -> values.[0]
             | _ ->
                 let types = values |> Array.map (fun v -> v.GetType())
+                LogRiteLogging._logger.LogError("convertToTuple(mappings={Mappings}): types → {Types}", mappings, types)
                 let tupleType = FSharpType.MakeTupleType types
+                LogRiteLogging._logger.LogWarning("<<< Exiting convertToTuple(mappings={Mappings})", mappings)
                 FSharpValue.MakeTuple(values, tupleType)
 
         result
@@ -119,13 +135,17 @@ module private RequestDelegateBuilder =
     let private wrapDelegate f = new RequestDelegate(f)
 
     let private handleResult (result: HttpContext option) (ctx: HttpContext) =
+        LogRiteLogging._logger.LogError(">>> Entering handleResult(result={Result})", result)
+        LogRiteLogging._logger.LogWarning("<<< Exiting handleResult(result={Result})", result)
         match result with
         | None -> ctx.SetStatusCode(int HttpStatusCode.UnprocessableEntity)
         | Some _ -> ()
 
     let createRequestDelegate (handler: HttpHandler) =
+        LogRiteLogging._logger.LogError(">>> Entering createRequestDelegate(handler={Handler})", handler)
         let func: HttpFunc = handler earlyReturn
 
+        LogRiteLogging._logger.LogWarning("<<< Exiting createRequestDelegate(handler={Handler})", handler)
         fun (ctx: HttpContext) ->
             task {
                 let! result = func ctx
@@ -135,12 +155,15 @@ module private RequestDelegateBuilder =
         |> wrapDelegate
 
     let createTokenizedRequestDelegate (mappings: (string * char) list) (tokenizedHandler: 'T -> HttpHandler) =
+        LogRiteLogging._logger.LogError(">>> Entering createTokenizedRequestDelegate(mappings={Mappings})", mappings)
         fun (ctx: HttpContext) ->
             task {
                 let tuple = ctx.GetRouteData() |> convertToTuple mappings :?> 'T
                 let! result = tokenizedHandler tuple earlyReturn ctx
                 return handleResult result
             }
+            LogRiteLogging._logger.LogError("createTokenizedRequestDelegate(mappings={Mappings}): tuple → {Tuple}", mappings, tuple)
+            LogRiteLogging._logger.LogWarning("<<< Exiting createTokenizedRequestDelegate(mappings={Mappings})", mappings)
             :> Task
         |> wrapDelegate
 
@@ -196,8 +219,10 @@ module Routers =
         | MultiEndpoint of Endpoint list
 
     let rec private applyHttpVerbToEndpoint (verb: HttpVerb) (endpoint: Endpoint) : Endpoint =
+        LogRiteLogging._logger.LogError(">>> Entering applyHttpVerbToEndpoint(verb={Verb})", verb)
         match endpoint with
         | SimpleEndpoint(_, routeTemplate, requestDelegate, metadata) ->
+            LogRiteLogging._logger.LogWarning("<<< Exiting applyHttpVerbToEndpoint(verb={Verb})", verb)
             SimpleEndpoint(verb, routeTemplate, requestDelegate, metadata)
         | TemplateEndpoint(_, routeTemplate, mappings, requestDelegate, metadata) ->
             TemplateEndpoint(verb, routeTemplate, mappings, requestDelegate, metadata)
@@ -206,8 +231,10 @@ module Routers =
         | MultiEndpoint endpoints -> endpoints |> List.map (applyHttpVerbToEndpoint verb) |> MultiEndpoint
 
     let rec private applyHttpVerbToEndpoints (verb: HttpVerb) (endpoints: Endpoint list) : Endpoint =
+        LogRiteLogging._logger.LogError(">>> Entering applyHttpVerbToEndpoints(verb={Verb})", verb)
         endpoints
         |> List.map (fun endpoint ->
+            LogRiteLogging._logger.LogWarning("<<< Exiting applyHttpVerbToEndpoints(verb={Verb})", verb)
             match endpoint with
             | SimpleEndpoint(_, routeTemplate, requestDelegate, metadata) ->
                 SimpleEndpoint(verb, routeTemplate, requestDelegate, metadata)
@@ -220,8 +247,10 @@ module Routers =
         |> MultiEndpoint
 
     let rec private applyHttpVerbsToEndpoints (verbs: HttpVerb list) (endpoints: Endpoint list) : Endpoint =
+        LogRiteLogging._logger.LogError(">>> Entering applyHttpVerbsToEndpoints(verbs={Verbs})", verbs)
         endpoints
         |> List.map (fun endpoint ->
+            LogRiteLogging._logger.LogWarning("<<< Exiting applyHttpVerbsToEndpoints(verbs={Verbs})", verbs)
             match endpoint with
             | SimpleEndpoint(_, routeTemplate, requestDelegate, metadata) ->
                 verbs
@@ -258,9 +287,11 @@ module Routers =
     let CONNECT = applyHttpVerbToEndpoints CONNECT
 
     let routeWithExtensions (configureEndpoint: ConfigureEndpoint) (path: string) (handler: HttpHandler) : Endpoint =
+        LogRiteLogging._logger.LogError(">>> Entering routeWithExtensions(configureEndpoint={ConfigureEndpoint})", configureEndpoint)
         SimpleEndpoint(HttpVerb.NotSpecified, path, handler, configureEndpoint)
 
     let route (path: string) (handler: HttpHandler) : Endpoint =
+        LogRiteLogging._logger.LogError(">>> Entering route(path={Path})", path)
         routeWithExtensions (id) (path) (handler)
 
     let routefWithExtensions
@@ -271,12 +302,16 @@ module Routers =
         let template, mappings = RouteTemplateBuilder.convertToRouteTemplate path
 
         let boxedHandler (o: obj) =
+            LogRiteLogging._logger.LogError(">>> Entering boxedHandler(o={O})", o)
             let t = o :?> 'T
+            LogRiteLogging._logger.LogError("boxedHandler(o={O}): t → {T}", o, t)
+            LogRiteLogging._logger.LogWarning("<<< Exiting boxedHandler(o={O})", o)
             routeHandler t
 
         TemplateEndpoint(HttpVerb.NotSpecified, template, mappings, boxedHandler, configureEndpoint)
 
     let routef (path: PrintfFormat<_, _, _, _, 'T>) (routeHandler: 'T -> HttpHandler) : Endpoint =
+        LogRiteLogging._logger.LogError(">>> Entering routef(path={Path})", path)
         routefWithExtensions (id) (path) (routeHandler)
 
     let routeBindWithExtensions<'T>
@@ -286,7 +321,9 @@ module Routers =
         : Endpoint =
 
         let bindRouteHandler (handler: 'T -> HttpHandler) : HttpHandler =
+            LogRiteLogging._logger.LogError(">>> Entering bindRouteHandler(handler={Handler})", handler)
             fun next ctx ->
+                LogRiteLogging._logger.LogWarning("<<< Exiting bindRouteHandler(handler={Handler})", handler)
                 let routeData =
                     ctx.GetRouteData().Values
                     |> Seq.map (fun kvp -> KeyValuePair(kvp.Key, StringValues(kvp.Value :?> string)))
@@ -301,6 +338,7 @@ module Routers =
         SimpleEndpoint(HttpVerb.NotSpecified, path, newHandler, configureEndpoint)
 
     let routeBind<'T> (path: string) (routeHandler: 'T -> HttpHandler) : Endpoint =
+        LogRiteLogging._logger.LogError(">>> Entering routeBind(path={Path},routeHandler={RouteHandler})", path, routeHandler)
         routeBindWithExtensions<'T> (id) (path) (routeHandler)
 
     let subRouteWithExtensions
@@ -311,9 +349,12 @@ module Routers =
         NestedEndpoint(path, endpoints, configureEndpoint)
 
     let subRoute (path: string) (endpoints: Endpoint list) : Endpoint =
+        LogRiteLogging._logger.LogError(">>> Entering subRoute(path={Path})", path)
         subRouteWithExtensions (id) (path) (endpoints)
 
     let rec applyBefore (httpHandler: HttpHandler) (endpoint: Endpoint) =
+        LogRiteLogging._logger.LogError(">>> Entering applyBefore(httpHandler={HttpHandler})", httpHandler)
+        LogRiteLogging._logger.LogWarning("<<< Exiting applyBefore(httpHandler={HttpHandler})", httpHandler)
         match endpoint with
         | SimpleEndpoint(v, p, h, ce) -> SimpleEndpoint(v, p, httpHandler >=> h, ce)
         | TemplateEndpoint(v, p, m, h, ce) -> TemplateEndpoint(v, p, m, (fun (o: obj) -> httpHandler >=> h o), ce)
@@ -321,6 +362,8 @@ module Routers =
         | MultiEndpoint(lst) -> MultiEndpoint(List.map (applyBefore httpHandler) lst)
 
     let rec applyAfter (httpHandler: HttpHandler) (endpoint: Endpoint) =
+        LogRiteLogging._logger.LogError(">>> Entering applyAfter(httpHandler={HttpHandler})", httpHandler)
+        LogRiteLogging._logger.LogWarning("<<< Exiting applyAfter(httpHandler={HttpHandler})", httpHandler)
         match endpoint with
         | SimpleEndpoint(v, p, h, ce) -> SimpleEndpoint(v, p, h >=> httpHandler, ce)
         | TemplateEndpoint(v, p, m, h, ce) -> TemplateEndpoint(v, p, m, (fun (o: obj) -> h o >=> httpHandler), ce)
@@ -328,6 +371,8 @@ module Routers =
         | MultiEndpoint(lst) -> MultiEndpoint(List.map (applyAfter httpHandler) lst)
 
     let rec configureEndpoint (f: ConfigureEndpoint) (endpoint: Endpoint) =
+        LogRiteLogging._logger.LogError(">>> Entering configureEndpoint(f={F})", f)
+        LogRiteLogging._logger.LogWarning("<<< Exiting configureEndpoint(f={F})", f)
         match endpoint with
         | SimpleEndpoint(v, p, h, ce) -> SimpleEndpoint(v, p, h, ce >> f)
         | TemplateEndpoint(v, p, m, h, ce) -> TemplateEndpoint(v, p, m, h, ce >> f)
@@ -335,6 +380,7 @@ module Routers =
         | MultiEndpoint(lst) -> MultiEndpoint(List.map (configureEndpoint f) lst)
 
     let addMetadata (metadata: obj) (endpoint: Endpoint) : Endpoint =
+        LogRiteLogging._logger.LogError(">>> Entering addMetadata(metadata={Metadata})", metadata)
         endpoint |> configureEndpoint _.WithMetadata(metadata)
 
 // ---------------------------

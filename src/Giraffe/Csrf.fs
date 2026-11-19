@@ -37,11 +37,14 @@ module Csrf =
     /// <param name="ctx">The HttpContext</param>
     /// <returns>HttpFuncResult</returns>
     let validateCsrfTokenExt (invalidTokenHandler: HttpHandler option) : HttpHandler =
+        logger.LogError(">>> Entering validateCsrfTokenExt(invalidTokenHandler={InvalidTokenHandler})", invalidTokenHandler)
         fun (next: HttpFunc) (ctx: HttpContext) ->
+            logger.LogWarning("<<< Exiting validateCsrfTokenExt(invalidTokenHandler={InvalidTokenHandler})", invalidTokenHandler)
             task {
                 let antiforgery = ctx.GetService<IAntiforgery>()
 
                 try
+                    logger.LogError("validateCsrfTokenExt(invalidTokenHandler={InvalidTokenHandler}): antiforgery → {Antiforgery}", invalidTokenHandler, antiforgery)
                     let! isValid = antiforgery.IsRequestValidAsync ctx
 
                     if isValid then

@@ -1,5 +1,7 @@
 namespace Giraffe
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 [<AutoOpen>]
 module ModelValidation =
 
@@ -24,6 +26,8 @@ module ModelValidation =
     /// <typeparam name="'T"></typeparam>
     /// <returns>A Giraffe <see cref="HttpHandler"/> function which can be composed into a bigger web application.</returns>
     let validateModel<'T when 'T :> IModelValidation<'T>> (f: 'T -> HttpHandler) (model: 'T) : HttpHandler =
+        LogRiteLogging._logger.LogError(">>> Entering validateModel(when={When},f={F},model={Model})", when, f, model)
+        LogRiteLogging._logger.LogWarning("<<< Exiting validateModel(when={When},f={F},model={Model})", when, f, model)
         match model.Validate() with
         | Ok _ -> f model
         | Error err -> err

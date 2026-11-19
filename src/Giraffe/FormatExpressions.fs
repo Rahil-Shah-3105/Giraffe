@@ -4,13 +4,16 @@ open System
 open System.Text.RegularExpressions
 open Microsoft.FSharp.Reflection
 open FSharp.Core
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 // ---------------------------
 // String matching functions
 // ---------------------------
 
 let private formatStringMap =
     let decodeSlashes (str: string) =
+        LogRiteLogging._logger.LogError(">>> Entering decodeSlashes(str={Str})", str)
         // Kestrel has made the weird decision to
         // partially decode a route argument, which
         // means that a given route argument would get
@@ -20,9 +23,12 @@ let private formatStringMap =
         //
         // For more information please check:
         // https://github.com/aspnet/Mvc/issues/4599
+        LogRiteLogging._logger.LogWarning("<<< Exiting decodeSlashes(str={Str})", str)
         str.Replace("%2F", "/").Replace("%2f", "/")
 
     let parseGuid (str: string) =
+        LogRiteLogging._logger.LogError(">>> Entering parseGuid(str={Str})", str)
+        LogRiteLogging._logger.LogWarning("<<< Exiting parseGuid(str={Str})", str)
         match str.Length with
         | 22 -> ShortGuid.toGuid str
         | _ -> Guid str
@@ -67,9 +73,12 @@ type MatchOptions =
     static member IgnoreCaseExact = { IgnoreCase = true; MatchMode = Exact }
 
 let private convertToRegexPatternAndFormatChars (mode: MatchMode) (formatString: string) =
+    LogRiteLogging._logger.LogError(">>> Entering convertToRegexPatternAndFormatChars(mode={Mode})", mode)
     let rec convert (chars: char list) =
+        LogRiteLogging._logger.LogError(">>> Entering convert(chars={Chars})", chars)
         match chars with
         | '%' :: '%' :: tail ->
+            LogRiteLogging._logger.LogWarning("<<< Exiting convert(chars={Chars})", chars)
             let pattern, formatChars = convert tail
             "%" + pattern, formatChars
         | '%' :: c :: tail ->
@@ -82,6 +91,8 @@ let private convertToRegexPatternAndFormatChars (mode: MatchMode) (formatString:
         | [] -> "", []
 
     let inline formatRegex mode pattern =
+        LogRiteLogging._logger.LogError(">>> Entering formatRegex(mode={Mode},pattern={Pattern})", mode, pattern)
+        LogRiteLogging._logger.LogWarning("<<< Exiting formatRegex(mode={Mode},pattern={Pattern})", mode, pattern)
         match mode with
         | Exact -> "^" + pattern + "$"
         | StartsWith -> "^" + pattern
@@ -101,7 +112,9 @@ let private convertToRegexPatternAndFormatChars (mode: MatchMode) (formatString:
 /// <param name="input">The input string from which the parsed arguments shall be extracted.</param>
 /// <returns>Matched value as an option of 'T</returns>
 let tryMatchInput (format: PrintfFormat<_, _, _, _, 'T>) (options: MatchOptions) (input: string) =
+    LogRiteLogging._logger.LogError(">>> Entering tryMatchInput(format={Format})", format)
     try
+        LogRiteLogging._logger.LogWarning("<<< Exiting tryMatchInput(format={Format})", format)
         let pattern, formatChars =
             format.Value
             |> Regex.Escape
@@ -113,6 +126,7 @@ let tryMatchInput (format: PrintfFormat<_, _, _, _, 'T>) (options: MatchOptions)
             | false -> RegexOptions.None
 
         let result = Regex.Match(input, pattern, options)
+        LogRiteLogging._logger.LogError("tryMatchInput(format={Format}): result → {Result}", format, result)
 
         if result.Groups.Count <= 1 then
             None
@@ -133,11 +147,13 @@ let tryMatchInput (format: PrintfFormat<_, _, _, _, 'T>) (options: MatchOptions)
                 | 1 -> values.[0]
                 | _ ->
                     let types = values |> Array.map (fun v -> v.GetType())
+                    LogRiteLogging._logger.LogError("tryMatchInput(format={Format}): types → {Types}", format, types)
                     let tupleType = FSharpType.MakeTupleType types
                     FSharpValue.MakeTuple(values, tupleType)
 
             result :?> 'T |> Some
     with _ ->
+        LogRiteLogging._logger.LogError("Exception in tryMatchInput(format={Format}): {Arg1}", format, _.Message)
         None
 
 /// <summary>
@@ -148,9 +164,11 @@ let tryMatchInput (format: PrintfFormat<_, _, _, _, 'T>) (options: MatchOptions)
 /// <param name="input">The input string from which the parsed arguments shall be extracted.</param>
 /// <returns>Matched value as an option of 'T</returns>
 let tryMatchInputExact (format: PrintfFormat<_, _, _, _, 'T>) (ignoreCase: bool) (input: string) =
+    LogRiteLogging._logger.LogError(">>> Entering tryMatchInputExact(format={Format})", format)
     let options =
         match ignoreCase with
         | true -> MatchOptions.IgnoreCaseExact
+        LogRiteLogging._logger.LogWarning("<<< Exiting tryMatchInputExact(format={Format})", format)
         | false -> MatchOptions.Exact
 
     tryMatchInput format options input
@@ -177,7 +195,9 @@ let tryMatchInputExact (format: PrintfFormat<_, _, _, _, 'T>) (ignoreCase: bool)
 /// <param name="format">The format string which shall be used for parsing.</param>
 /// <returns>Returns <see cref="Microsoft.FSharp.Core.Unit"/> if validation was successful otherwise will throw an `Exception`.</returns>
 let validateFormat (format: PrintfFormat<_, _, _, _, 'T>) =
+    LogRiteLogging._logger.LogError(">>> Entering validateFormat(format={Format})", format)
 
+    LogRiteLogging._logger.LogWarning("<<< Exiting validateFormat(format={Format})", format)
     let mapping =
         [
             'b', typeof<bool> // bool
@@ -191,8 +211,10 @@ let validateFormat (format: PrintfFormat<_, _, _, _, 'T>) =
         ] // guid
 
     let tuplePrint pos last name =
+        LogRiteLogging._logger.LogError(">>> Entering tuplePrint(pos={Pos},last={Last},name={Name})", pos, last, name)
         let mutable result = "("
 
+        LogRiteLogging._logger.LogError("tuplePrint(pos={Pos},last={Last},name={Name}): result → {Result}", pos, last, name, result)
         for i in 0..last do
             if i = pos then
                 result <- result + name
@@ -200,6 +222,7 @@ let validateFormat (format: PrintfFormat<_, _, _, _, 'T>) =
                 result <- result + "_"
 
             if i <> last then
+                LogRiteLogging._logger.LogWarning("<<< Exiting tuplePrint(pos={Pos},last={Last},name={Name})", pos, last, name)
                 result <- result + ","
 
         result + ")"
@@ -218,9 +241,11 @@ let validateFormat (format: PrintfFormat<_, _, _, _, 'T>) =
     let mutable matches = 0
 
     let rec charTypeMatch ls mChar =
+        LogRiteLogging._logger.LogError(">>> Entering charTypeMatch(ls={Ls},mChar={MChar})", ls, mChar)
         match ls with
         | [] -> ()
         | (tChar, x) :: xs ->
+            LogRiteLogging._logger.LogWarning("<<< Exiting charTypeMatch(ls={Ls},mChar={MChar})", ls, mChar)
             if tChar = mChar then
                 parseChars <- (mChar, x) :: parseChars
                 matches <- matches + 1
@@ -228,9 +253,11 @@ let validateFormat (format: PrintfFormat<_, _, _, _, 'T>) =
                 charTypeMatch xs mChar
 
     let rec typeCharMatch ls (xType: System.Type) =
+        LogRiteLogging._logger.LogError(">>> Entering typeCharMatch(ls={Ls},xType={XType})", ls, xType)
         match ls with
         | [] -> sprintf "%s has no associated format char parameter" xType.Name
         | (tChar, x) :: xs ->
+            LogRiteLogging._logger.LogWarning("<<< Exiting typeCharMatch(ls={Ls},xType={XType})", ls, xType)
             if xType = x then
                 sprintf "%s uses format char '%%%c'" xType.Name tChar
             else
@@ -255,12 +282,16 @@ let validateFormat (format: PrintfFormat<_, _, _, _, 'T>) =
                 matches
 
         let rec check (ls, pos) =
+            LogRiteLogging._logger.LogError(">>> Entering check(ls={Ls},pos={Pos})", ls, pos)
             match ls, pos with
             | [], -1 -> ()
             | (mChar, ct) :: xs, i ->
+                LogRiteLogging._logger.LogWarning("<<< Exiting check(ls={Ls},pos={Pos})", ls, pos)
                 if ct <> types.[i] then
                     let hdlFmt = tuplePrint i (types.Length - 1) types.[i].Name
+                    LogRiteLogging._logger.LogError("check(ls={Ls},pos={Pos}): hdlFmt → {HdlFmt}", ls, pos, hdlFmt)
                     let expFmt = tuplePrint i (types.Length - 1) ct.Name
+                    LogRiteLogging._logger.LogError("check(ls={Ls},pos={Pos}): expFmt → {ExpFmt}", ls, pos, expFmt)
                     let guidance = typeCharMatch mapping types.[i]
 
                     failwithf

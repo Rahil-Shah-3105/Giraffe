@@ -8,7 +8,9 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Http.Headers
 open Microsoft.Extensions.Primitives
 open Microsoft.Net.Http.Headers
+open Microsoft.Extensions.Logging
 
+module internal LogRiteLogging = begin let _logger : Microsoft.Extensions.Logging.ILogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance end
 type Precondition =
     | NoConditionsSpecified
     | ResourceNotModified
@@ -29,12 +31,15 @@ type EntityTagHeaderValue with
 type HttpContext with
 
     member private this.IsHeadOrGetRequest() =
+        LogRiteLogging._logger.LogError(">>> Entering IsHeadOrGetRequest()")
         HttpMethods.IsHead this.Request.Method || HttpMethods.IsGet this.Request.Method
 
     member private this.ValidateIfMatch (eTag: EntityTagHeaderValue option) (requestHeaders: RequestHeaders) =
+        LogRiteLogging._logger.LogError(">>> Entering ValidateIfMatch(eTag={ETag})", eTag)
         match isNotNull requestHeaders.IfMatch && requestHeaders.IfMatch.Any() with
         | false -> NoConditionsSpecified
         | true ->
+            LogRiteLogging._logger.LogWarning("<<< Exiting ValidateIfMatch(eTag={ETag})", eTag)
             match eTag with
             | None -> ConditionFailed
             | Some eTag ->
@@ -64,9 +69,11 @@ type HttpContext with
                 | false -> ConditionFailed
 
     member private this.ValidateIfNoneMatch (eTag: EntityTagHeaderValue option) (requestHeaders: RequestHeaders) =
+        LogRiteLogging._logger.LogError(">>> Entering ValidateIfNoneMatch(eTag={ETag})", eTag)
         match isNotNull requestHeaders.IfNoneMatch && requestHeaders.IfNoneMatch.Any() with
         | false -> NoConditionsSpecified
         | true ->
+            LogRiteLogging._logger.LogWarning("<<< Exiting ValidateIfNoneMatch(eTag={ETag})", eTag)
             match eTag with
             | None -> AllConditionsMet
             | Some eTag ->
@@ -80,14 +87,18 @@ type HttpContext with
                         | false -> ConditionFailed
 
     member private this.ValidateIfModifiedSince (lastModified: DateTimeOffset option) (requestHeaders: RequestHeaders) =
+        LogRiteLogging._logger.LogError(">>> Entering ValidateIfModifiedSince(lastModified={LastModified})", lastModified)
         match requestHeaders.IfModifiedSince.HasValue && this.IsHeadOrGetRequest() with
         | false -> NoConditionsSpecified
         | true ->
+            LogRiteLogging._logger.LogWarning("<<< Exiting ValidateIfModifiedSince(lastModified={LastModified})", lastModified)
             match lastModified with
             | None -> AllConditionsMet
             | Some lastModified ->
                 let lastModified = lastModified.CutOffMs()
+                LogRiteLogging._logger.LogError("ValidateIfModifiedSince(lastModified={LastModified}): lastModified → {LastModified1}", lastModified, lastModified)
 
+                LogRiteLogging._logger.LogError("Exception in ValidateIfModifiedSince(lastModified={LastModified}): {Arg1}", lastModified, true.Message)
                 match
                     requestHeaders.IfModifiedSince.Value <= DateTimeOffset.UtcNow.CutOffMs()
                     && requestHeaders.IfModifiedSince.Value < lastModified
@@ -132,9 +143,11 @@ type PreconditionExtensions() =
 
         // Helper bind functions to chain validation functions
         let bind (result: RequestHeaders -> Precondition) =
+            LogRiteLogging._logger.LogError(">>> Entering bind(result={Result})", result)
             function
             | NoConditionsSpecified -> result requestHeaders
             | AllConditionsMet ->
+                LogRiteLogging._logger.LogWarning("<<< Exiting bind(result={Result})", result)
                 match result requestHeaders with
                 | NoConditionsSpecified -> AllConditionsMet
                 | AllConditionsMet -> AllConditionsMet
@@ -144,6 +157,8 @@ type PreconditionExtensions() =
             | ResourceNotModified -> ResourceNotModified
 
         let ifNotSpecified (result: RequestHeaders -> Precondition) =
+            LogRiteLogging._logger.LogError(">>> Entering ifNotSpecified(result={Result})", result)
+            LogRiteLogging._logger.LogWarning("<<< Exiting ifNotSpecified(result={Result})", result)
             function
             | NoConditionsSpecified -> result requestHeaders
             | AllConditionsMet -> AllConditionsMet
@@ -207,7 +222,9 @@ type PreconditionExtensions() =
 /// <param name="ctx"></param>
 /// <returns>A Giraffe <see cref="HttpHandler" /> function which can be composed into a bigger web application.</returns>
 let validatePreconditions (eTag: EntityTagHeaderValue option) (lastModified: DateTimeOffset option) : HttpHandler =
+    LogRiteLogging._logger.LogError(">>> Entering validatePreconditions(eTag={ETag})", eTag)
     fun (next: HttpFunc) (ctx: HttpContext) ->
+        LogRiteLogging._logger.LogWarning("<<< Exiting validatePreconditions(eTag={ETag})", eTag)
         task {
             match ctx.ValidatePreconditions(eTag, lastModified) with
             | ConditionFailed -> return ctx.PreconditionFailedResponse()
